@@ -10,3 +10,5 @@ latex/template.synctex.gz
 *.blg
 
 *.aux
+
+.idea/
