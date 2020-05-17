@@ -1,0 +1,12 @@
+
+latex/intro.log
+
+*.pdf
+
+latex/template.synctex.gz
+
+*.log
+
+*.blg
+
+*.aux
