@@ -2,6 +2,7 @@ from ASRModel import ASRModel
 
 import os
 
+
 class HMM(ASRModel):
 
     # constructor

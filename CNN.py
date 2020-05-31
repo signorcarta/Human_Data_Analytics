@@ -13,7 +13,10 @@ class CNN(ASRModel):
         print("CNN constructor")
         self.model_id = model_id
 
-    def preprocess(self, audio_path: str): #____________________________________________________________________________
+        # Create model
+        self.model = Sequential()
+
+    def preprocess(self, audio_path: str):
         """
         from an input path, load the single audio and return preprocessed audio
         which will be the input of the net
@@ -22,37 +25,28 @@ class CNN(ASRModel):
         """
         print("CNN preprocess")
 
-    # _________________________________________________________________________________________________________________
-
-    def build_model(self): #___________________________________________________________________________________________
+    def build_model(self):
         """
         Create the model structure with the parameters specified in the constructor
         :return:
         """
-        # Create model
-        self = Sequential()
-
         # add layers [! input shape must be (28,28,1) !]
-        self.add(Conv2D(64, kernel_size=3, activation=relu, input_shape=(28, 28, 1)))
-        self.add(Conv2D(32, kernel_size=3, activation=relu))
-        self.add(Flatten())
-        self.add(Dense(10, activation=softmax))  # 10 nodes at output layer (can be changed)
-        self.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        self.model.add(Conv2D(64, kernel_size=3, activation=relu, input_shape=(28, 28, 1)))
+        self.model.add(Conv2D(32, kernel_size=3, activation=relu))
+        self.model.add(Flatten())
+        self.model.add(Dense(10, activation=softmax))  # 10 nodes at output layer (can be changed)
+        self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
         print("CNN build_model")
 
-    # _________________________________________________________________________________________________________________
-
-    def train(self, trainset_path: str): #_____________________________________________________________________________
+    def train(self, trainset_path: str):
         """
         Train the builded model in the input dataset specified in the
         :return: the id of the builded model, useful to get the .h5 file
         """
-        self.fit(trainset_path, trainset_path, epochs=3) #validation_data=(X_test, y_test), epochs=3)
+        self.model.fit(trainset_path, trainset_path, epochs=3) #validation_data=(X_test, y_test), epochs=3)
 
         print("CNN train")
-
-    # _________________________________________________________________________________________________________________
 
     @staticmethod
     def load_model(model_path: str) -> ASRModel:
@@ -70,23 +64,21 @@ class CNN(ASRModel):
         # cnn.graph = load_graph()  # "model.h5"
         return cnn
 
-    def save_model(self, path: str): #_________________________________________________________________________________
+    def save_model(self, path: str):
         """
         Save the current model in the specified path
         :param path:
         :return:
         """
 
-        self.save(path, overwrite=True, include_optimizer=True, save_format=None, signatures=None, options=None)
+        self.model.save(path, overwrite=True, include_optimizer=True, save_format=None, signatures=None, options=None)
         print("CNN save_model")
-    # _________________________________________________________________________________________________________________
 
-    def test(self, testset_path: str): #_______________________________________________________________________________
+    def test(self, testset_path: str):
         """
         Test the trained model, with
         :return:
         """
 
-        self.predict(testset_path)
+        self.model.predict(testset_path)
         print("CNN test")
-    # _________________________________________________________________________________________________________________

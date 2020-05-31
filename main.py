@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
     # check and load input parameters
     assert os.path.exists(args.json), "invalid path for parameters {}".format(args.json)
-    assert args.json.endswith(".json"), "--param file format not supported: {}".format(args.json.split(".")[-1])
+    assert args.json.endswith(".json"), "--json file format not supported: {}".format(args.json.split(".")[-1])
     params = load_json(args.json)  # a dictionary with all the parameter to train, test or rtasr
 
     # check extra parameters
