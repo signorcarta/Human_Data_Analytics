@@ -1,7 +1,7 @@
 from ASRModel import ASRModel
-from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Flatten
-from keras.activations import relu, softmax
+# from keras.models import Sequential
+# from keras.layers import Dense, Conv2D, Flatten
+# from keras.activations import relu, softmax
 
 import os
 
@@ -14,7 +14,7 @@ class CNN(ASRModel):
         self.model_id = model_id
 
         # Create model
-        self.model = Sequential()
+        # self.model = Sequential()
 
     def preprocess(self, audio_path: str):
         """
@@ -31,11 +31,11 @@ class CNN(ASRModel):
         :return:
         """
         # add layers [! input shape must be (28,28,1) !]
-        self.model.add(Conv2D(64, kernel_size=3, activation=relu, input_shape=(28, 28, 1)))
-        self.model.add(Conv2D(32, kernel_size=3, activation=relu))
-        self.model.add(Flatten())
-        self.model.add(Dense(10, activation=softmax))  # 10 nodes at output layer (can be changed)
-        self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        # self.model.add(Conv2D(64, kernel_size=3, activation=relu, input_shape=(28, 28, 1)))
+        # self.model.add(Conv2D(32, kernel_size=3, activation=relu))
+        # self.model.add(Flatten())
+        # self.model.add(Dense(10, activation=softmax))  # 10 nodes at output layer (can be changed)
+        # self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
         print("CNN build_model")
 
@@ -44,7 +44,7 @@ class CNN(ASRModel):
         Train the builded model in the input dataset specified in the
         :return: the id of the builded model, useful to get the .h5 file
         """
-        self.model.fit(trainset_path, trainset_path, epochs=3) #validation_data=(X_test, y_test), epochs=3)
+        # self.model.fit(trainset_path, trainset_path, epochs=3)  # validation_data=(X_test, y_test), epochs=3)
 
         print("CNN train")
 
@@ -71,7 +71,7 @@ class CNN(ASRModel):
         :return:
         """
 
-        self.model.save(path, overwrite=True, include_optimizer=True, save_format=None, signatures=None, options=None)
+        # self.model.save(path, overwrite=True, include_optimizer=True, save_format=None, signatures=None, options=None)
         print("CNN save_model")
 
     def test(self, testset_path: str):
@@ -80,5 +80,5 @@ class CNN(ASRModel):
         :return:
         """
 
-        self.model.predict(testset_path)
+        # self.model.predict(testset_path)
         print("CNN test")
