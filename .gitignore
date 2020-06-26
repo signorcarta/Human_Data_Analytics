@@ -12,3 +12,5 @@ latex/template.synctex.gz
 *.aux
 
 .idea/
+
+__pycache__/

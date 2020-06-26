@@ -1,0 +1,7 @@
+{
+  "model_type": "CNN",
+
+  "trainset_id": "trainset_id",
+
+  "testset_id": "test_id"
+}
