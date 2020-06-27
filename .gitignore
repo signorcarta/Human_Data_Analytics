@@ -16,3 +16,8 @@ latex/template.synctex.gz
 __pycache__/
 trainset/
 
+trainset
+
+trash/
+
+test.wav
