@@ -1,6 +1,6 @@
 from ASRModel import ASRModel
 import numpy as np
-from mfccs_library.python_speech_features.python_speech_features import *
+from MFCCs_library.python_speech_features.python_speech_features import *
 from scipy.io import wavfile
 import os
 
