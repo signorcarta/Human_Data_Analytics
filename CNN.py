@@ -1,8 +1,7 @@
 from ASRModel import ASRModel
-# from keras.models import Sequential
-# from keras.layers import Dense, Conv2D, Flatten
-# from keras.activations import relu, softmax
-
+import numpy as np
+from mfccs_library.python_speech_features.python_speech_features import *
+from scipy.io import wavfile
 import os
 
 
@@ -23,7 +22,12 @@ class CNN(ASRModel):
         :param audio_path: input audio path to preprocess
         :return: the preprocessed audio, the model input
         """
+
         print("CNN preprocess")
+        fs, data = wavfile.read(audio_path)
+        return mfcc(data, fs, winlen=0.025, winstep=0.01, nfilt=26, nfft=512, lowfreq=0, highfreq=None,
+                    preemph=0.97,
+                    winfunc=lambda x: np.ones((x,)))
 
     def build_model(self):
         """
