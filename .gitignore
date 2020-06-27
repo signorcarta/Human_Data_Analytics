@@ -14,3 +14,4 @@ latex/template.synctex.gz
 .idea/
 
 __pycache__/
+trainset/
