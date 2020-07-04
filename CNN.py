@@ -93,6 +93,8 @@ class CNN(ASRModel):
         self.model.compile(loss=keras.losses.categorical_crossentropy,
                       optimizer=keras.optimizers.SGD(lr=0.01),
                       metrics=['accuracy'])
+        # my_optimizers = [keras.optimizers.Adam(), keras.optimizers.SGD(nesterov=True)]
+        # self.model.compile(optimizer=[my_optimizers], loss='categorical_crossentropy', metrics=['accuracy'])
 
         print("CNN build_model")
 

@@ -4,21 +4,7 @@
 \label{sec:introduction}
 
 \begin{remark}
-\textbf{Paper contribution:} First and foremost decide on what precisely is the contribution of your paper over the state of the art. If you think you have several contributions, {\it focus on the most important one}. It may be that you can add one or two contributions as side topics, but in general you should focus on the most important one so as {\it to keep your paper focused}. As a side note: If you think you have several contributions for a single paper, you should probably invest in researching state of the art and related work more thoroughly. When you know your contribution, think of a good title.
-\end{remark}
-
-\begin{remark} 
-\textbf{Title:} Find a short and precise title for you paper exactly matching the content. It's worth investing time into this matter, as {\it the title will be that part of the paper by which it will be referenced} (in case it gets published).
-\end{remark}
-
-\begin{remark}
-\textbf{How to organize your writeup with Latex:} I find it useful, especially for a paper with multiple authors, to split your manuscript into multiple source Latex files. This is very easily accomplished by having single {\it root} file, e.g., \texttt{main.tex}, where you define the article class, all the \mbox{user-defined} commands, the paper formatting options (e.g., one vs two columns, the page margins, the text size and the fonts, etc.). For this project, the root is called \texttt{template.tex}. From the root you then call, in sequential order, a number of other latex source files through the command \texttt{\textbackslash input\{filename.tex\}}. It is often convenient to have one of such files for each section of your paper. This facilitates editing multiple sections in parallel and keeping your project synchronized with some versioning and revision control system such as \texttt{svn} or \texttt{github} (highly recommended).
-\end{remark}
-
-\begin{remark}
-\textbf{Compiling trick:} For each source Latex file that you call from the main, I recommend you copy the following command in the very first line\\
-\texttt{\% !TEX root = template.tex}\\
-where \texttt{template.tex} is the name of the root Latex file. This command tells the Latex compiler that your main root file is \texttt{template.tex}, and it makes it possible to compile the paper from any of the sub-files. Example: imagine you are editing \texttt{introduction.tex} and have that open in a window of your preferred Latex editor. With this command, you can compile from the local \texttt{introduction.tex} window, without having to open and switch every time to the root file window and compile from it. This will save you hours.  
+\textbf{Paper contribution:} This paper aims at implementing an automatic speech recognition system investigating different architechtures and learning techniques. 
 \end{remark}
 
 \red{Maximum length for the whole report is 9 pages. Abstract, introduction and related work should take max two pages.}\\
