@@ -21,3 +21,7 @@ trainset
 trash/
 
 test.wav
+
+latex/CartaPerali_Report.synctex.gz
+
+latex/CartaPerali_Report.bbl
