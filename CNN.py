@@ -4,9 +4,9 @@ import types
 import tensorflow as tf
 import tensorflow.keras as keras
 
-from keras.activations import softmax, relu
-from keras import Sequential
-from keras.layers import Conv2D, Flatten, Dense
+from tensorflow.keras.activations import softmax, relu
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Conv2D, Flatten, Dense
 from python_speech_features import *
 from scipy.io import wavfile
 from ASRModel import ASRModel
