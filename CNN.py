@@ -3,7 +3,6 @@ import os
 import types
 import tensorflow as tf
 import tensorflow.keras as keras
-import tensorflow_datasets as tfds
 
 from keras.activations import softmax, relu
 from keras import Sequential
@@ -107,7 +106,7 @@ class CNN(ASRModel):
         if os.path.isdir(trainset):
             pass
         else:
-
+            import tensorflow_datasets as tfds
             batch_size = 32
             epochs = 10
 
