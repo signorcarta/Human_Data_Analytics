@@ -12,7 +12,11 @@ from os.path import join
 
 # filesystem directory, create dir if does not exist
 JSON_PATH = "json"
-TRAIN_PATH = "train"
+
+if os.path.isdir("/nfsd"):
+    TRAIN_PATH = "/nfsd/hda/DATASETS/"
+elif os.path.isdir("train"):
+    TRAIN_PATH = "train"
 TEST_PATH = "test"
 MODEL_PATH = "model"
 RES_PATH = "res"

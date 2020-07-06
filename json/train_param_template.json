@@ -1,7 +1,8 @@
 {
   "model_type": "CNN",
+  "set_model_name": "facultative id",
 
-  "trainset_id": "trainset_id",
+  "trainset_id": "Project_1",
 
   "testset_id": "test_id"
 }
