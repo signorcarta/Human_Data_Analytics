@@ -16,7 +16,7 @@ JSON_PATH = "json"
 if os.path.isdir("/nfsd"):
     TRAIN_PATH = "/nfsd/hda/DATASETS/"
 elif os.path.isdir("train"):
-    TRAIN_PATH = "train"
+    TRAIN_PATH = "trainset"
 TEST_PATH = "test"
 MODEL_PATH = "model"
 RES_PATH = "res"

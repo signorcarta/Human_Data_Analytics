@@ -3,6 +3,7 @@ import os
 import types
 import tensorflow as tf
 import tensorflow.keras as keras
+import dataset_utils
 
 from tensorflow.keras.activations import softmax, relu
 from tensorflow.keras import Sequential
@@ -21,6 +22,7 @@ def gen_sample(data, k):
     for v in data:
         yield v[k]
 
+
 class CNN(ASRModel):
 
     # constructor
@@ -36,6 +38,11 @@ class CNN(ASRModel):
         else:
             # this is a new model
             self.model = Sequential()
+
+        self.wanted_words = ['bed', 'stop', 'seven', 'up']
+        # add UNKNOWN label to the dataset if not present
+        if dataset_utils.UNKNOWN not in self.wanted_words:
+            self.wanted_words.append(dataset_utils.UNKNOWN)
 
     def preprocess(self, audio):
         """
@@ -70,12 +77,14 @@ class CNN(ASRModel):
                        preemph=0.97,
                        winfunc=lambda x: np.ones((x,))).reshape((99, 13, 1))
 
-    def gen_validation(self, mnist_val, k_list):
+    def batch_preprocessing_gen(self, mnist_val, k_list, ww_size):
         for sample in mnist_val:
             batch = sample[k_list[0]]
             labels = sample[k_list[1]]
             preprocessed_batch = np.array([self.preprocess(data) for data in batch])
-            preprocessed_label = np.array([np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(11-l))) for l in labels])
+            preprocessed_label = np.array(
+                [np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1))) for l in labels])
+            # print(preprocessed_label)
             yield preprocessed_batch, preprocessed_label
 
     def build_model(self):
@@ -87,7 +96,7 @@ class CNN(ASRModel):
         self.model.add(Conv2D(64, kernel_size=3, activation=relu, input_shape=(99, 13, 1)))
         self.model.add(Conv2D(32, kernel_size=3, activation=relu))
         self.model.add(Flatten())
-        self.model.add(Dense(12, activation=softmax))  # 11 nodes at output layer (can be changed)
+        self.model.add(Dense(len(self.wanted_words), activation=softmax))  # 11 nodes at output layer (can be changed)
         # self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
         self.model.compile(loss=keras.losses.categorical_crossentropy,
                       optimizer=keras.optimizers.SGD(lr=0.01),
@@ -102,38 +111,43 @@ class CNN(ASRModel):
         Train the builded model in the input dataset specified in the
         :return: the id of the builded model, useful to get the .h5 file
         """
-        # self.model.fit(trainset_path, trainset_path, epochs=3)  # validation_data=(X_test, y_test), epochs=3)
+        epochs = 10
+        steps_per_epoch = 10
+        validation_steps = 3
+
+        t_batch_size = 500
+        v_batch_size = 500
+
+        val_percentage = 10.
+        test_percentage = 10.
+        unknown_percentage = 10.
+
         if os.path.isdir(trainset):
-            pass
+            x_train, y_train, x_val, y_val, x_test, y_test, info = \
+                dataset_utils.load_dataset(trainset, val_percentage=val_percentage, test_percentage=test_percentage)
+
+            g_train = dataset_utils.dataset_generator(x_train, y_train, info, self.wanted_words,
+                                                      batch_size=t_batch_size, tot_size=-1,
+                                                      unknown_percentage=unknown_percentage, balanced=True)
+            g_val = dataset_utils.dataset_generator(x_val, y_val, info, self.wanted_words,
+                                                    batch_size=v_batch_size, tot_size=-1,
+                                                    unknown_percentage=unknown_percentage)
         else:
             import tensorflow_datasets as tfds
-            batch_size = 32
-            epochs = 10
 
             ds_train, info_train = tfds.load('speech_commands', split=tfds.Split.TRAIN, batch_size=500, with_info=True)
             ds_val, info_val = tfds.load('speech_commands', split=tfds.Split.VALIDATION, batch_size=100, with_info=True)
-            assert isinstance(ds_train, tf.data.Dataset)
-            #assert isinstance(ds_val, tf.data.Dataset)
 
-            mnist_train = tfds.as_numpy(ds_train)
-            mnist_val = tfds.as_numpy(ds_val)
+            g_train = tfds.as_numpy(ds_train)
+            g_val = tfds.as_numpy(ds_val)
 
-            # x_train, y_train = mnist_train["audio"], mnist_train["label"]  # separate the x and y
-            # x_val, y_val = mnist_val["audio"], mnist_val["label"]  # separate the x and y
+        # TODO: len(self..wanted_words) is not supported for tfds in batch_preprocessing_gen
+        xy_train = self.batch_preprocessing_gen(g_train, ('audio', 'label'), len(self.wanted_words))
+        xy_val = self.batch_preprocessing_gen(g_val, ('audio', 'label'), len(self.wanted_words))
 
-            # x_train = self.preprocess_gen(gen_sample(mnist_train, 'audio'))
-            # y_train = self.preprocess_gen(gen_sample(mnist_train, 'label'))
-            xy_train = self.gen_validation(mnist_train, ('audio', 'label'))
-            xy_val = self.gen_validation(mnist_val, ('audio', 'label'))
-
-            # x_val_mfcc = []
-            # x_val = [self.preprocess(data) for data in x_val[:1]]
-            # y_val = y_val[:1]
-            # x_val_mfcc = np.array(x_val_mfcc)
-
-            self.model.fit(x=xy_train, epochs=epochs, verbose=2, steps_per_epoch=50, validation_steps=10,
-                           validation_data=xy_val,
-                           use_multiprocessing=False)
+        self.model.fit(x=xy_train, epochs=epochs, verbose=2, steps_per_epoch=steps_per_epoch,
+                       validation_steps=validation_steps,
+                       validation_data=xy_val, use_multiprocessing=False)
         print("CNN train")
 
 
