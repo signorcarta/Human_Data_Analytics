@@ -4,15 +4,19 @@
 \label{sec:introduction}
 
 \begin{remark}
-\textbf{Paper contribution:} This paper aims at implementing an automatic speech recognition system investigating different architechtures and learning techniques. 
+\textbf{Paper contribution.} In this paper we describe how we implemented a keyword spotting system investigating different architechtures and learning techniques. 
 \end{remark}
 
-\red{Maximum length for the whole report is 9 pages. Abstract, introduction and related work should take max two pages.}\\
+\begin{remark}
+\textbf{Dataset description.} We trained our systems through the "{\it speech\_commands}" dataset. It contains 105,829 utterances of 35 distinct words coming from 2,618 different persons, each one having the duration of at most one second, stored in {\it .wav} format files. The contained audio allow to reflect the trigger phrase task that a keyword spotting system aims at achieving and cope with noisy environments, poor quality recording tools or people taking in a natural way. 
+\end{remark}
+
+\red{[Maximum length for the whole report is 9 pages. Abstract, introduction and related work should take max two pages.]}\\
 
 \noindent \textbf{Recommended structure for the intro:} you may use the following structure. 
 \begin{itemize}
-\item \textbf{General (short) intro:} One paragraph to introduce your work, describing the scenario {\it at large}, its relevance, to prepare the reader to what follows and convince her/him that the paper focuses on an important setup/problem. Please keep this part short (I usually do five to eight lines), as this part is rather standard, \textbf{but} at the same time it has to be there. 
-\item \textbf{Put the problem into perspective:} A second paragraph where you immediately delve into the specific problem that you are tackling, starting to detail your contribution. Here, you describe the importance of such problem, providing examples (citing papers from the literature, possibly recent ones) of previous solutions attempts, and of why these failed {\it to provide a complete answer}. This second paragraph should not be too long, as otherwise the reader will get bored and will abandon your paper... It should be concisely written, something like 5 to 10 lines.
+\item \textbf{General (short) intro:} Several voice interfaces (i.e. Alexa, Siri, Cortana) rely on keyword spotting, for the detection of wake-up words that determine the beginning of an interaction. These systems are continuously listening for an audio input from the embedded microphones and, once a likely trigger phrase is detected, the interaction begins. 
+\item \textbf{Put the problem into perspective:}  Our work addressed keyword spotting as a closed-set classification problem, as most of the existing solutions. We start by deploying a CNN-based architecture playing on different data preprocessing approaches and hyperparameters tuning. {\it to be continued}
 \item \textbf{Present the paper contribution:} A third paragraph were you state what you do in the paper, this should also be concisely written. A good rule of thumb is to make it max 10/15 lines. Here, you should state up front:
 \begin{enumerate}
 \item \textbf{problem}: the problem at stake, 
@@ -22,9 +26,7 @@
 \item \textbf{applicability}: tell the reader how she/he can take advantage of your work, e.g., how your work/results can be reused/exploited to achieve further scientific, technical or practical (integrated into products?) goals.
 \end{enumerate}
 \item \textbf{Summary of contributions:} After this, you may want to provide an itemized list to summarize the paper contributions. Rule of thumb: from three to six items, from three to four lines each.
-\item \textbf{Closing (paper structure):} You finish up by detailing the paper structure, this should be three to four lines. It is customary to do so, although I admit it may be of little use. It usually goes like: {\it ``This report (paper) is structured as follows. In Section II we describe the state of the art, the system and data models are respectively presented in Sections~III and~IV. The proposed signal processing technique is detailed in Section~V and its performances evaluation is carried out in Section~VI. Concluding remarks are provided in Section~VII.''}
+\item \textbf{Closing (paper structure):}In Section II we describe the state of the art, the system and data models are respectively presented in Sections~III and~IV. The proposed signal processing technique is detailed in Section~V and its performances evaluation is carried out in Section~VI. Concluding remarks are provided in Section~VII.''
 \end{itemize}
 
-\begin{remark} 
-Lately, I tend to write introduction plus abstract within a single page. This forces me to focus on the important messages that I want to deliver about the paper, leaving out all the ``blah blah''. \textbf{Remember:} 1) {\it less is more}, 2) writing a compact ({\it snappy}) piece of technical text is much more difficult than writing lengthy stuff with no space constraints.
-\end{remark}
+
