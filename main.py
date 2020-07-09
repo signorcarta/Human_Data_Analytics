@@ -89,15 +89,15 @@ def train(params: Dict):
         model_id = get_new_model_id(params["model_type"])
 
     if params["model_type"] == "CNN":
-        asrmodel = CNN(model_id)
+        asrmodel = CNN(join(MODEL_PATH, model_id), wanted_words=params["wanted_words"])
     elif params["model_type"] == "HMM":
-        asrmodel = HMM(model_id)
+        asrmodel = HMM(join(MODEL_PATH, model_id))
     else:
         # should never go here
         raise AssertionError("model_type not recognised: {} check {}".format(params["model_type"], SUPPORTED_MODEL))
 
-    asrmodel.build_model()  # create the structure of the model
     asrmodel.train(trainset_path)
+    asrmodel.save_model()
     del asrmodel  # free memory
     return model_id
 
@@ -115,15 +115,18 @@ def test(params: Dict):
 
     model_path = join(MODEL_PATH, params["model_id"])
     if params["model_type"] == "CNN":
-        model = CNN.load_model(model_path)
+        model = CNN(model_path)
     elif params["model_type"] == "HMM":
-        model = HMM.load_model(model_path)
+        model = HMM(model_path)
     else:
         # should never go here
         raise AssertionError("model_type not recognised: {} check {}".format(params["model_type"], SUPPORTED_MODEL))
 
-    model.test(params["testset_id"])
+    metrics = model.test(join(TRAIN_PATH, params["testset_id"]))
+    model.save_data()
     del model  # free memory
+
+
 
 
 def real_time_asr(params: Dict):

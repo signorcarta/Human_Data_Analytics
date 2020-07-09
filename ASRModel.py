@@ -13,10 +13,11 @@ class ASRModel:
         """
         pass
 
+    @staticmethod
     @abc.abstractmethod
-    def build_model(self):
+    def build_model(output_shape, input_shape=(99, 13, 1)):
         """
-        Create the model structure with the parameters specified in the constructor
+        Create the model structure with the parameters specified
         :return:
         """
         pass
@@ -40,7 +41,7 @@ class ASRModel:
         pass
 
     @abc.abstractmethod
-    def save_model(self, path: str):
+    def save_model(self):
         """
         Save the current model in the specified path
         :param path:
