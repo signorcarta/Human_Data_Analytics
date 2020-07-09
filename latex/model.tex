@@ -1,16 +1,43 @@
-% !TEX root = template.tex
+% !TEX root = CartaPerali_Report.tex
+\section{Models implementation}
+\label{sec:models_implementation}
 
-\section{Processing Pipeline}
-\label{sec:processing_architecture}
+\noindent This section describes our models implementation. The code necessary to replicate our experiments is available at our GitHub repository. \red{ \it Possibly insert link here}
+\subsection*{ \textbf {Data preprocessing and Features Extraction}} The first step to take in any KWS system is to extract features from our audio signal. For this task, the MFCC features were used. Thirteen-dimensional Mel-Frequency Cepstrum Coefficients (MFCC) frames are built using a 25ms window and a 10ms frame shift. \red{ \it Improve description here}
 
-\begin{remark}
-\textbf{On tailoring the paper structure to your needs:} The structure recommended for the previous sections is rather standard and could work for different papers with differing technical content, the structure and the paper content from here on highly depends on the type of paper, possibilities are: mostly based on theoretical analysis, showing experimental design/activity, proposing a new technique and analyzing its performance via experiments or simulation. For the HDA course we deal with machine learning and, in detail, with training and testing neural network architectures to perform some specific inference or classification task. The following structure and comments are specifically addressing this type of technical content.
-\end{remark}
+\subsection{ \textbf {CNN}} Our architecture is described in Fig. \ref{fig:CNN_schema}
 
+\begin{figure}[h]
+	\centering
+	    \includegraphics[width=0.25\textwidth]{CNN_schema}
+	    \caption{CNN schema}
+	    \label{fig:CNN_schema}
+\end{figure}
+
+\subsubsection{ \textbf {CNN subsection}} 
+\subsubsection{ \textbf {CNN subsection}} 
+\subsubsection{ \textbf {CNN subsection}} 
+
+\subsection {\textbf {RNN}}
+\subsubsection{ \textbf {RNN subsection}} 
+\subsubsection{ \textbf {RNN subsection}} 
+\subsubsection{ \textbf {RNN subsection}} 
+
+\subsection {\textbf {HMM}}
+\subsubsection{ \textbf {HMM subsection}} 
+\subsubsection{ \textbf {HMM subsection}} 
+\subsubsection{ \textbf {HMM subsection}} 
+
+
+\red{
+\begin{enumerate}
+\item \textbf{On tailoring the paper structure to your needs:} The structure recommended for the previous sections is rather standard and could work for different papers with differing technical content, the structure and the paper content from here on highly depends on the type of paper, possibilities are: mostly based on theoretical analysis, showing experimental design/activity, proposing a new technique and analyzing its performance via experiments or simulation. For the HDA course we deal with machine learning and, in detail, with training and testing neural network architectures to perform some specific inference or classification task. The following structure and comments are specifically addressing this type of technical content.
+\end{enumerate}}
+
+\red{
 \begin{remark}
 \textbf{Why having this section:} With this section, we start the technical description with a {\it high level} introduction of your work (e.g., processing pipeline). Here, you do not have to necessarily go into the technical details of every block/algorithm of your design, this will be done later as the paper develops. What I would like to see here is a high level description of the approach, i.e., which processing blocks you used, what they do (in words) and how these were combined, etc. This section should introduce the reader to your design, explain the different parts/blocks, how they interact and why. You should not delve into technical details for each block, but you should rather explain the big picture. \MR{Besides a well written explanation, I often use a nice diagram containing the various blocks and detailing their interrelations.}
 \end{remark} 
-
 \noindent \textbf{Writing tips:} Sections, Figures and Tables are usually shortened as Sec., Fig., Tab. 
 \begin{itemize}
 \item \textbf{Cross referencing:} In Latex, cross referencing is easy. You need to label an object through the \texttt{\textbackslash label\{labelid\}} command and referencing it where you need it through the \texttt{\textbackslash ref\{labelid\}} command. 
@@ -18,6 +45,8 @@
 \item \textbf{But what about the tilde?} This is a nice trick I have learned from a friend (many years ago from Prof. Frank Fitzek, now at TU Dresden). When you write \texttt{Tab.\mytexttilde\textbackslash ref\{tab:tableid\}} Latex knows that \texttt{Tab.} and the corresponding table number \texttt{\textbackslash ref\{tab:tableid\}} must be displayed within the same line, i.e., they can never be broken across lines. This is nice and desirable I believe. I always use it for all referenced material, including citations; example: ``As done in\texttt{\mytexttilde\textbackslash cite\{suppa-wu-2019\}}.''
 \item \textbf{More about breaking stuff across lines} often times you have composed words, in line equations, etc. and for some reason you would like Latex to never break them across lines. Example: the Latex command \texttt{\textbackslash mbox\{Neural Networks (NN)\}} is processed by Latex so that ``\mbox{Neural Networks (NN)}'' is never broken across lines. I use this very often, also for inline equations that I do not want Latex to split across subsequent lines.
 \end{itemize}
+}
+
 
 \section{Signals and Features}
 \label{sec:model}

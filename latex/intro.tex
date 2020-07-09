@@ -1,23 +1,16 @@
-% !TEX root = template.tex
+% !TEX root = CartaPerali_Report.tex
 
 \section{Introduction}
 \label{sec:introduction}
 
-\begin{remark}
-\textbf{Paper contribution.} In this paper we describe how we implemented a keyword spotting system investigating different architechtures and learning techniques. 
-\end{remark}
+\noindent \textbf{Paper contribution.} In this paper we describe how we implemented a keyword spotting system investigating different architechtures and learning techniques. \\
 
-\begin{remark}
-\textbf{Dataset description.} We trained our systems through the "{\it speech\_commands}" dataset. It contains 105,829 utterances of 35 distinct words coming from 2,618 different persons, each one having the duration of at most one second, stored in {\it .wav} format files. The contained audio allow to reflect the trigger phrase task that a keyword spotting system aims at achieving and cope with noisy environments, poor quality recording tools or people taking in a natural way. 
-\end{remark}
+\noindent \textbf{Dataset description.} We trained our systems through the "{\it speech\_commands}" dataset. It contains 105,829 utterances of 35 distinct words coming from 2,618 different persons, each one having the duration of at most one second, stored in {\it .wav} format files. The contained audio allow to reflect the trigger phrase task that a keyword spotting system aims at achieving and cope with noisy environments, poor quality recording tools or people taking in a natural way. \\\
 
-\red{[Maximum length for the whole report is 9 pages. Abstract, introduction and related work should take max two pages.]}\\
-
-\noindent \textbf{Recommended structure for the intro:} you may use the following structure. 
-\begin{itemize}
-\item \textbf{General (short) intro:} Several voice interfaces (i.e. Alexa, Siri, Cortana) rely on keyword spotting, for the detection of wake-up words that determine the beginning of an interaction. These systems are continuously listening for an audio input from the embedded microphones and, once a likely trigger phrase is detected, the interaction begins. 
-\item \textbf{Put the problem into perspective:}  Our work addressed keyword spotting as a closed-set classification problem, as most of the existing solutions. We start by deploying a CNN-based architecture playing on different data preprocessing approaches and hyperparameters tuning. {\it to be continued}
-\item \textbf{Present the paper contribution:} A third paragraph were you state what you do in the paper, this should also be concisely written. A good rule of thumb is to make it max 10/15 lines. Here, you should state up front:
+\noindent  Several voice interfaces (i.e. Alexa, Siri, Cortana) rely on keyword spotting, for the detection of wake-up words that determine the beginning of an interaction. These systems are continuously listening for an audio input from the embedded microphones and, once a likely trigger phrase is detected, the interaction begins. 
+Our work addresses keyword spotting as a closed-set classification problem, as most of the existing solutions. We start by deploying a CNN-based architecture playing on different data preprocessing approaches and hyperparameters tuning. {\it to be continued}
+\begin{itemize} 
+\item \textbf{Present the paper contribution:} \red{ A third paragraph were you state what you do in the paper, this should also be concisely written. A good rule of thumb is to make it max 10/15 lines. Here, you should state up front:
 \begin{enumerate}
 \item \textbf{problem}: the problem at stake, 
 \item \textbf{relevance}: the relevance and timeliness of what you propose, 
@@ -25,8 +18,8 @@
 \item \textbf{value}: underline the value/novelty of your proposal referencing (recent) papers from the literature,
 \item \textbf{applicability}: tell the reader how she/he can take advantage of your work, e.g., how your work/results can be reused/exploited to achieve further scientific, technical or practical (integrated into products?) goals.
 \end{enumerate}
-\item \textbf{Summary of contributions:} After this, you may want to provide an itemized list to summarize the paper contributions. Rule of thumb: from three to six items, from three to four lines each.
-\item \textbf{Closing (paper structure):}In Section II we describe the state of the art, the system and data models are respectively presented in Sections~III and~IV. The proposed signal processing technique is detailed in Section~V and its performances evaluation is carried out in Section~VI. Concluding remarks are provided in Section~VII.''
+\item \textbf{Summary of contributions:} After this, you may want to provide an itemized list to summarize the paper contributions. Rule of thumb: from three to six items, from three to four lines each.}
+\item \textbf{Paper structure):}In Section~I we introduce the problem and what we do in the paper. In Section~II we describe the related work and state of the art. The model architechtures are described in Sections~III and the obtained results are presented in Section~IV.  Concluding remarks are provided in Section~V.'
 \end{itemize}
 
 
