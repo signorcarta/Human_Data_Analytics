@@ -326,7 +326,8 @@ class CNN(ASRModel):
         xy_test = self.load_dataset(testset_path, partitions='test')
         if self.machine == 'blade':
             metrics = self.model.evaluate(xy_test[0], steps=self.test_steps, max_queue_size=10, verbose=0)
-            metrics = {out: metrics[i] for i, out in enumerate(self.model.metrics_names)}
+            metrics = {out: float(metrics[i]) for i, out in enumerate(self.model.metrics_names)}
+            print("output metrics: {} ".format(str(metrics)))
         else:
             metrics = self.model.evaluate(xy_test[0], steps=self.test_steps, max_queue_size=10, return_dict=True, verbose=0)
         print("CNN test - {}".format(metrics))
