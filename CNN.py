@@ -3,6 +3,7 @@ import os
 import tensorflow.keras as keras
 import dataset_utils
 import pickle
+import json
 
 from os.path import isfile, isdir, join, dirname
 from tensorflow.keras.activations import softmax, relu
@@ -13,8 +14,13 @@ from scipy.io import wavfile
 from ASRModel import ASRModel
 
 MODEL_NAME = 'model.h5'
-INFO_NAME = 'info.dictionary'
+INFO_NAME = 'param.json'
 
+
+# TODO: confusion matrix
+# run on blade
+# analyze result
+# train parameter, test parameter from json
 
 def gen_sample(data, k):
     for v in data:
@@ -28,64 +34,106 @@ class ModelPathError(Exception):
 class CNN(ASRModel):
 
     # constructor
-    def __init__(self, model_path: str, wanted_words=None):
+    def __init__(self, model_path: str, input_param=None):
         print("CNN constructor")
+        # param to identify a cnn model
         self.model_path = model_path if isdir(model_path) else dirname(model_path)
         self.model_id = CNN.get_id_from_path(self.model_path)
-        self.test_loss = -1
-        self.test_accuracy = -1
+        self.machine = input_param['machine']
 
-        # Load or create model
-        if isfile(model_path) or isfile(join(model_path, MODEL_NAME)):                          # load existing model
-            self.model = CNN.load_model(model_path)
-            cnn_data = CNN.load_data(join(model_path, INFO_NAME))
-            self.wanted_words = cnn_data["wanted_words"]
-            self.trainset_id = cnn_data["trainset_id"]
-            self.testset_id = cnn_data["testset_id"]
-            self.info = cnn_data["info"]
-            self.model_id = cnn_data["model_id"]
-        elif isdir(model_path):                         # create new model
+        # output initialization
+        self.out_param = {}
+
+        # Load or create model, wanted_words and info
+        if isfile(model_path) or isfile(join(model_path, MODEL_NAME)):      # load existing model
+            input_param.update(CNN.load_data(join(model_path, INFO_NAME)))
+
+            # compile model
+            self.optimizer = input_param["optimizer"]  # 'adam'
+            self.loss = input_param["loss"]  # 'categorical_crossentropy'
+            self.metrics = input_param["metrics"]  # ('accuracy')
+
+            self.model = self.load_model(model_path)
+
+            self.wanted_words = input_param["wanted_words"]
+            self.numcep = input_param["numcep"]
+            self.info = input_param["info"]
+        elif isdir(model_path):                                             # create new model
             self.info = {}
-            self.trainset_id = ""
-            self.testset_id = ""
-            self.model = CNN.build_model(len(wanted_words))
-            if wanted_words is None:
-                self.wanted_words = []
-            else:
-                self.wanted_words = wanted_words
+            self.wanted_words = input_param["wanted_words"]
+            self.numcep = input_param["numcep"]
+
+            self.model = CNN.build_model(len(input_param["wanted_words"]), input_shape=(99, self.numcep, 1))
+
+            # compile model
+            self.optimizer = input_param["optimizer"]  # 'adam'
+            self.loss = input_param["loss"]  # 'categorical_crossentropy'
+            self.metrics = input_param["metrics"]  # ('accuracy')
 
             # add UNKNOWN label to the dataset if not present
+            # TODO: talk about unknown in the report
             if dataset_utils.UNKNOWN not in self.wanted_words:
                 self.wanted_words.append(dataset_utils.UNKNOWN)
-
         self.wanted_words.sort()
 
-    def load_dataset(self, trainset, partitions=('train', 'validation', 'test'), t_batch_size=500, v_batch_size=500,
-                     test_batch_size=500, val_percentage=10., test_percentage=10., unknown_percentage=10.):
+        # preprocess param
+        self.winlen = input_param["winlen"]  #: 0.025,
+        self.winstep = input_param["winstep"]  #: 0.01,
+        self.nfilt = input_param["nfilt"]  #: 26,
+        self.nfft = input_param["nfft"]  #: 512,
+        self.preemph = input_param["preemph"]  #: 0.97,
+
+        # param to build model
+        self.structure_id = input_param["structure_id"]  #: "light_cnn",
+        self.filters = input_param["filters"]  #: [64, 32],
+        self.kernel_size = input_param["kernel_size"]  #: [3, 3],
+
+        # input dataset of the model
+        self.trainset_id = input_param["trainset_id"]
+        self.testset_id = input_param["testset_id"]
+
+        # train
+        self.epochs = input_param["epochs"]  # 10
+        self.steps_per_epoch = input_param["steps_per_epoch"]  # 10
+        self.validation_steps = input_param["validation_steps"]  # 3
+
+        self.t_batch_size = input_param["t_batch_size"]  # 500
+        self.v_batch_size = input_param["v_batch_size"]  # 500
+        self.val_percentage = input_param["val_percentage"]  # 10.
+
+        self.test_batch_size = input_param["test_batch_size"]  # 500
+        self.test_steps = input_param["test_steps"]  # 4
+        self.test_percentage = input_param["test_percentage"]  # 10.
+
+        self.unknown_percentage = input_param["unknown_percentage"]  # 10.
+
+        # test
+
+    def load_dataset(self, trainset, partitions=('train', 'validation')):
 
         if isdir(trainset):
             x_train, y_train, x_val, y_val, x_test, y_test, info = \
-                dataset_utils.load_dataset(trainset, val_percentage=val_percentage, test_percentage=test_percentage)
+                dataset_utils.load_dataset(trainset, val_percentage=self.val_percentage, test_percentage=self.test_percentage)
 
             g_train = dataset_utils.dataset_generator(x_train, y_train, self.info, self.wanted_words,
-                                                      batch_size=t_batch_size, tot_size=-1,
-                                                      unknown_percentage=unknown_percentage, balanced=True)
+                                                      batch_size=self.t_batch_size, tot_size=-1,
+                                                      unknown_percentage=self.unknown_percentage, balanced=True)
             g_val = dataset_utils.dataset_generator(x_val, y_val, self.info, self.wanted_words,
-                                                    batch_size=v_batch_size, tot_size=-1,
-                                                    unknown_percentage=unknown_percentage)
+                                                    batch_size=self.v_batch_size, tot_size=-1,
+                                                    unknown_percentage=self.unknown_percentage)
             g_test = dataset_utils.dataset_generator(x_test, y_test, self.info, self.wanted_words,
-                                                     batch_size=test_batch_size, tot_size=-1,
-                                                     unknown_percentage=unknown_percentage, balanced=True)
+                                                     batch_size=self.test_batch_size, tot_size=-1,
+                                                     unknown_percentage=self.unknown_percentage, balanced=True)
 
             self.info.update(info)
         else:
             import tensorflow_datasets as tfds
 
-            ds_train, info_train = tfds.load('speech_commands', split=tfds.Split.TRAIN, batch_size=t_batch_size,
+            ds_train, info_train = tfds.load('speech_commands', split=tfds.Split.TRAIN, batch_size=self.t_batch_size,
                                              with_info=True)
-            ds_val, info_val = tfds.load('speech_commands', split=tfds.Split.VALIDATION, batch_size=v_batch_size,
+            ds_val, info_val = tfds.load('speech_commands', split=tfds.Split.VALIDATION, batch_size=self.v_batch_size,
                                          with_info=True)
-            ds_test, info_test = tfds.load('speech_commands', split=tfds.Split.TEST, batch_size=test_batch_size,
+            ds_test, info_test = tfds.load('speech_commands', split=tfds.Split.TEST, batch_size=self.test_batch_size,
                                           with_info=True)
 
             self.info.update(info_train)
@@ -159,6 +207,7 @@ class CNN(ASRModel):
         Create the model structure with the parameters specified
         :return:
         """
+        print("CNN build_model")
         # add layers [! input shape must be (28,28,1) !]
         model = Sequential()
         model.add(Conv2D(64, kernel_size=3, activation=relu, input_shape=input_shape))
@@ -172,25 +221,19 @@ class CNN(ASRModel):
         # my_optimizers = [keras.optimizers.Adam(), keras.optimizers.SGD(nesterov=True)]
         # model.compile(optimizer=[my_optimizers], loss='categorical_crossentropy', metrics=['accuracy'])
 
-        print("CNN build_model")
         return model
 
-    def train(self, trainset, epochs=10, steps_per_epoch=10, validation_steps=3,
-              partitions=('train', 'validation', 'test'), t_batch_size=500, v_batch_size=500, test_batch_size=500,
-              val_percentage=10., test_percentage=10., unknown_percentage=10.):
+    def train(self, trainset):
         """
         Train the builded model in the input dataset specified in the
         :return: the id of the builded model, useful to get the .h5 file
         """
 
-        xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'), t_batch_size=t_batch_size,
-                                             v_batch_size=v_batch_size, test_batch_size=test_batch_size,
-                                             val_percentage=val_percentage, test_percentage=test_percentage,
-                                             unknown_percentage=unknown_percentage)
-        self.model.fit(x=xy_train, epochs=epochs, verbose=2, steps_per_epoch=steps_per_epoch,
-                       validation_steps=validation_steps,
-                       validation_data=xy_val, use_multiprocessing=False)
         print("CNN train")
+        xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
+        self.model.fit(x=xy_train, epochs=self.epochs, verbose=2, steps_per_epoch=self.steps_per_epoch,
+                       validation_steps=self.validation_steps,
+                       validation_data=xy_val, use_multiprocessing=False)
 
     @staticmethod
     def get_id_from_path(model_path: str):
@@ -202,14 +245,13 @@ class CNN(ASRModel):
             raise ModelPathError("Invalid model path: {}".format(model_path))
         return model_id
 
-    @staticmethod
-    def load_model(model_path: str) -> ASRModel:
+    def load_model(self, model_path: str) -> ASRModel:
         """
         load a pretrained model from the specified path
         :param model_path:
         :return:
         """
-        # TODO test this method
+        print("CNN load_model in {}".format(model_path))
         if model_path.endswith(MODEL_NAME):
             model = keras.models.load_model(model_path)
         elif isdir(model_path) and isfile(join(model_path, MODEL_NAME)):
@@ -217,8 +259,7 @@ class CNN(ASRModel):
         else:
             raise ModelPathError("Invalid model path: {}".format(model_path))
 
-        print("CNN load_model in {}".format(model_path))
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        model.compile(optimizer=self.optimizer, loss=self.loss, metrics=self.metrics)
         return model
 
     def save_model(self):
@@ -228,28 +269,53 @@ class CNN(ASRModel):
         :return:
         """
 
+        print("CNN save_model {}".format(self.model_path))
         self.model.save(join(self.model_path, MODEL_NAME), overwrite=True)
         self.save_data()
-        print("CNN save_model {}".format(self.model_path))
 
     def save_data(self):
-        cnn_data = {"info": self.info,
+        cnn_data = {
+                    "machine": self.machine,
+                    "info": self.info,
                     "wanted_words": self.wanted_words,
                     "model_id": self.model_id,
                     "model_path": self.model_path,
+
                     "trainset_id": self.trainset_id,
                     "testset_id": self.testset_id,
                     "model_type": "CNN",
-                    "test_loss": self.test_loss,
-                    "test_accuracy": self.test_accuracy
+                    "winlen": self.winlen,  #: 0.025,
+                    "winstep": self.winstep,  #: 0.01,
+                    "numcep": self.numcep,  #: 13,
+                    "nfilt": self.nfilt,  #: 26,
+                    "nfft": self.nfft,  #: 512,
+                    "preemph": self.preemph,  #: 0.97,
+
+                    "structure_id": self.structure_id,  #: "light_cnn",
+                    "filters": self.filters,  #: [64, 32],
+                    "kernel_size": self.kernel_size,  #: [3, 3],
+
+                    "epochs": self.epochs,
+                    "t_batch_size": self.t_batch_size,
+                    "steps_per_epoch": self.steps_per_epoch,
+
+                    "v_batch_size": self.v_batch_size,
+                    "val_percentage": self.val_percentage,
+                    "validation_steps": self.validation_steps,
+
+                    "test_batch_size": self.test_batch_size,
+                    "test_steps": self.test_steps,
+                    "test_percentage": self.test_percentage,
+                    "unknown_percentage": self.unknown_percentage
+
                     }
-        with open(join(self.model_path, INFO_NAME), 'wb') as info_file:
-            pickle.dump(cnn_data, info_file)
+        with open(join(self.model_path, INFO_NAME), 'w') as info_file:
+            json.dump(cnn_data, info_file, indent=2, sort_keys=True)
 
     @staticmethod
     def load_data(path: str):
-        with open(path, 'rb') as data_file:
-            cnn = pickle.load(data_file)
+        with open(path, 'r') as data_file:
+            cnn = json.load(data_file)
         return cnn
 
     def test(self, testset_path: str):
@@ -257,11 +323,7 @@ class CNN(ASRModel):
         Test the trained model, with
         :return:
         """
-
-        xy_test = self.load_dataset(testset_path, partitions='test', test_batch_size=500, val_percentage=10.,
-                                    test_percentage=10., unknown_percentage=10.)
-        metrics = self.model.evaluate(xy_test[0], steps=4, max_queue_size=10, return_dict=True)
+        xy_test = self.load_dataset(testset_path, partitions='test')
+        metrics = self.model.evaluate(xy_test[0], steps=self.test_steps, max_queue_size=10, return_dict=True, verbose=0)
         print("CNN test - {}".format(metrics))
-        self.test_loss = metrics['loss']
-        self.test_accuracy = metrics['accuracy']
         return metrics

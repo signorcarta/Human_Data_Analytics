@@ -4,6 +4,7 @@ import json
 import random
 import string
 import shutil
+import platform
 
 from typing import Dict
 from CNN import CNN
@@ -13,10 +14,12 @@ from os.path import join
 # filesystem directory, create dir if does not exist
 JSON_PATH = "json"
 
-if os.path.isdir("/nfsd"):
+if os.path.isdir("/nfsd"):  # the program is running in the cluster
     TRAIN_PATH = "/nfsd/hda/DATASETS/"
-elif os.path.isdir("train"):
+    MACHINE = "blade"
+elif os.path.isdir("train"):  # the program is not running in the cluster
     TRAIN_PATH = "trainset"
+    MACHINE = platform.uname()[1]  # 'jarvis-vivobooks15'
 TEST_PATH = "test"
 MODEL_PATH = "model"
 RES_PATH = "res"
@@ -89,7 +92,7 @@ def train(params: Dict):
         model_id = get_new_model_id(params["model_type"])
 
     if params["model_type"] == "CNN":
-        asrmodel = CNN(join(MODEL_PATH, model_id), wanted_words=params["wanted_words"])
+        asrmodel = CNN(join(MODEL_PATH, model_id), input_param=params)
     elif params["model_type"] == "HMM":
         asrmodel = HMM(join(MODEL_PATH, model_id))
     else:
@@ -115,7 +118,7 @@ def test(params: Dict):
 
     model_path = join(MODEL_PATH, params["model_id"])
     if params["model_type"] == "CNN":
-        model = CNN(model_path)
+        model = CNN(model_path, params)
     elif params["model_type"] == "HMM":
         model = HMM(model_path)
     else:
@@ -124,9 +127,17 @@ def test(params: Dict):
 
     metrics = model.test(join(TRAIN_PATH, params["testset_id"]))
     model.save_data()
+    save_results(metrics, params["model_id"])
     del model  # free memory
 
 
+def save_results(metrics, model_id):
+    out_path = join(TEST_PATH, model_id + '_' + random_string(3) + '.json')
+    while os.path.exists(out_path):
+        out_path = join(TEST_PATH, model_id + '_' + random_string(3) + '.json')
+
+    with open(out_path, "w") as test_file:
+        json.dump(metrics, test_file)
 
 
 def real_time_asr(params: Dict):
@@ -155,6 +166,8 @@ if __name__ == "__main__":
     assert os.path.exists(args.json), "invalid path for parameters {}".format(args.json)
     assert args.json.endswith(".json"), "--json file format not supported: {}".format(args.json.split(".")[-1])
     params = load_json(args.json)  # a dictionary with all the parameter to train, test or rtasr
+
+    params.update({"machine": MACHINE})
 
     # check extra parameters
     for action in args.action.split(','):
