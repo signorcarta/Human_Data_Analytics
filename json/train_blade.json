@@ -1,0 +1,38 @@
+{
+  "model_type": "CNN",
+
+  "set_model_name": "debug",
+
+
+  "winlen": 0.025,
+  "winstep": 0.01,
+  "numcep": 13,
+  "nfilt": 26,
+  "nfft": 512,
+  "preemph": 0.97,
+
+  "trainset_id": "Project_1",
+  "wanted_words": ["bed", "stop", "seven", "up", "_unknown_"],
+  "structure_id": "light_cnn",
+  "filters": [64, 32],
+  "kernel_size": [3, 3],
+
+  "optimizer": "adam",
+  "loss": "categorical_crossentropy",
+  "metrics": ["accuracy"],
+
+  "epochs": 10,
+  "t_batch_size": 500,
+  "steps_per_epoch": 10,
+
+  "validation_steps": 3,
+  "v_batch_size": 500,
+  "val_percentage": 10.0,
+
+  "test_batch_size": 500,
+  "test_steps": 4,
+  "test_percentage": 10.0,
+  "unknown_percentage": 10.0,
+
+  "testset_id": "Project_1"
+}
