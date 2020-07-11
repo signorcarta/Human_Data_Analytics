@@ -145,7 +145,7 @@ def dataset_generator(x_, y_, info, wanted_words, batch_size=1000, unknown_perce
     # max_iterations = int(tot_size/batch_size)+1
     inner_index = 0
     round_ = 0  # incremented each time inner_index >= len(x_)
-    i = 0
+    step = 0
     while True:  # for i in range(0, max_iterations):
         xy_numpy = {'audio': [], 'label': []}
         batch_index = 0
@@ -178,11 +178,13 @@ def dataset_generator(x_, y_, info, wanted_words, batch_size=1000, unknown_perce
 
             inner_index += 1
         if len(xy_numpy['label']) == 0:
-            break
-        print("round {:3.0f}, examined {} out of {} : return {} sample".format(round_, inner_index, len(x_), len(xy_numpy['label'])))
+            continue
+
+        step += 1
+        print("round {:3.0f}, step {} , examined {}/{} , batch_size {} ".format(
+            round_, step, inner_index, len(x_), len(xy_numpy['label'])))
         yield xy_numpy
         sample_counter = {label: 0 for label in wanted_words}
-        i += 1
     print("dataset_generator end!")  # it should never end
 
 

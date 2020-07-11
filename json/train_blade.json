@@ -21,17 +21,18 @@
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 
-  "epochs": 10,
-  "t_batch_size": 500,
+  "epochs": 2,
+  "t_batch_size": 2500,
+
   "steps_per_epoch": 10,
-
+  "test_steps": 10,
   "validation_steps": 3,
-  "v_batch_size": 500,
-  "val_percentage": 10.0,
 
-  "test_batch_size": 500,
-  "test_steps": 4,
-  "test_percentage": 10.0,
+  "v_batch_size": 2500,
+  "val_percentage": 2.5,
+
+  "test_batch_size": 2500,
+  "test_percentage": 2.5,
   "unknown_percentage": 10.0,
 
   "testset_id": "Project_1"

@@ -120,17 +120,19 @@ class CNN(ASRModel):
             else:
                 max_batch_size = 2500
 
-            self.test_batch_size = min(max_batch_size, self.test_batch_size)
+            self.test_batch_size = min(max_batch_size, int(len(x_test)/2), self.test_batch_size)
             self.test_steps = int(len(x_test) / self.test_batch_size) \
                 if len(x_test) % self.test_batch_size != 0 \
                 else int(len(x_test) / self.test_batch_size) - 1
 
-            self.t_batch_size = min(max_batch_size, self.t_batch_size)
+            self.t_batch_size = min(max_batch_size, int(len(x_train)/2), self.t_batch_size)
             self.steps_per_epoch = int(len(x_train) / self.t_batch_size)  \
                 if len(x_train) % self.t_batch_size != 0 \
                 else int(len(x_train) / self.t_batch_size) - 1
+            self.steps_per_epoch = int(self.steps_per_epoch / 10.0)
+            self.epochs *= 10
 
-            self.v_batch_size = min(max_batch_size, self.v_batch_size)
+            self.v_batch_size = min(max_batch_size, int(len(x_val)/2), self.v_batch_size)
             self.validation_steps = int(len(x_val) / self.v_batch_size) \
                 if len(x_val) % self.v_batch_size != 0 \
                 else int(len(x_val) / self.v_batch_size) - 1
