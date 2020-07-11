@@ -127,7 +127,7 @@ def test(params: Dict):
 
     metrics = model.test(join(TRAIN_PATH, params["testset_id"]))
     model.save_data()
-    save_results(metrics, params["model_id"])
+    res_path = save_results(metrics, params["model_id"])
     del model  # free memory
 
 
@@ -139,6 +139,7 @@ def save_results(metrics, model_id):
     with open(out_path, "w") as test_file:
         json.dump(metrics, test_file)
 
+    return out_path
 
 def real_time_asr(params: Dict):
     """

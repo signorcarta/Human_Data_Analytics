@@ -66,6 +66,7 @@ def load_dataset(dataset_path, val_percentage=10., test_percentage=10.):
     info = {
             "dataset_path": dataset_path,
             "tot_sample": 0,
+            "discarded_sample": 0,
             "labels": [],
             "counters": {}
             }
@@ -83,6 +84,8 @@ def load_dataset(dataset_path, val_percentage=10., test_percentage=10.):
                     path_list.append(join(label_dir, file))
                     info["tot_sample"] += 1
                     info["counters"][label_dir] += 1
+                else:
+                    info["discarded_sample"] += 1
 
     # shuffle
     random.shuffle(path_list)
@@ -148,9 +151,11 @@ def dataset_generator(x_, y_, info, wanted_words, batch_size=1000, unknown_perce
         batch_index = 0
         while batch_index < batch_size:
             if inner_index >= len(x_):  # the entire dataset has been consumed, restart from the beginning
-                print("Complete a tour of the whole dataset, restarting from the beginning.")
+                print("Complete a tour of the whole dataset.")
                 round_ += 1
                 inner_index = 0  # TODO: is it the best choise? Should the list be shuffled?
+                if not balanced:
+                    break
 
             label = y_[inner_index] if y_[inner_index] in wanted_words else UNKNOWN
 

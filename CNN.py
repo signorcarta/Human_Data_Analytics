@@ -115,15 +115,35 @@ class CNN(ASRModel):
             x_train, y_train, x_val, y_val, x_test, y_test, info = \
                 dataset_utils.load_dataset(trainset, val_percentage=self.val_percentage, test_percentage=self.test_percentage)
 
+            if self.machine == "blade":
+                max_batch_size = 2500
+            else:
+                max_batch_size = 2500
+
+            self.test_batch_size = min(max_batch_size, self.test_batch_size)
+            self.test_steps = int(len(x_test) / self.test_batch_size) \
+                if len(x_test) % self.test_batch_size != 0 \
+                else int(len(x_test) / self.test_batch_size) - 1
+
+            self.t_batch_size = min(max_batch_size, self.t_batch_size)
+            self.steps_per_epoch = int(len(x_train) / self.t_batch_size)  \
+                if len(x_train) % self.t_batch_size != 0 \
+                else int(len(x_train) / self.t_batch_size) - 1
+
+            self.v_batch_size = min(max_batch_size, self.v_batch_size)
+            self.validation_steps = int(len(x_val) / self.v_batch_size) \
+                if len(x_val) % self.v_batch_size != 0 \
+                else int(len(x_val) / self.v_batch_size) - 1
+
             g_train = dataset_utils.dataset_generator(x_train, y_train, self.info, self.wanted_words,
                                                       batch_size=self.t_batch_size, tot_size=-1,
-                                                      unknown_percentage=self.unknown_percentage, balanced=True)
+                                                      unknown_percentage=self.unknown_percentage)
             g_val = dataset_utils.dataset_generator(x_val, y_val, self.info, self.wanted_words,
                                                     batch_size=self.v_batch_size, tot_size=-1,
                                                     unknown_percentage=self.unknown_percentage)
             g_test = dataset_utils.dataset_generator(x_test, y_test, self.info, self.wanted_words,
                                                      batch_size=self.test_batch_size, tot_size=-1,
-                                                     unknown_percentage=self.unknown_percentage, balanced=True)
+                                                     unknown_percentage=self.unknown_percentage)
 
             self.info.update(info)
         else:
