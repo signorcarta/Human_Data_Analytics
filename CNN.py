@@ -18,9 +18,7 @@ INFO_NAME = 'param.json'
 
 
 # TODO: confusion matrix
-# run on blade
 # analyze result
-# train parameter, test parameter from json
 
 def gen_sample(data, k):
     for v in data:
@@ -94,15 +92,17 @@ class CNN(ASRModel):
 
         # train
         self.epochs = input_param["epochs"]  # 10
-        self.steps_per_epoch = input_param["steps_per_epoch"]  # 10
-        self.validation_steps = input_param["validation_steps"]  # 3
+
+        # deprecated, automatically setted with epochs and max_batch_size
+        self.steps_per_epoch = -1  # input_param["steps_per_epoch"]  # 10
+        self.validation_steps = -1  # input_param["validation_steps"]  # 3
+        self.test_steps = -1  # input_param["test_steps"]  # 4
 
         self.t_batch_size = input_param["t_batch_size"]  # 500
         self.v_batch_size = input_param["v_batch_size"]  # 500
         self.val_percentage = input_param["val_percentage"]  # 10.
 
         self.test_batch_size = input_param["test_batch_size"]  # 500
-        self.test_steps = input_param["test_steps"]  # 4
         self.test_percentage = input_param["test_percentage"]  # 10.
 
         self.unknown_percentage = input_param["unknown_percentage"]  # 10.
