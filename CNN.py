@@ -4,6 +4,9 @@ import tensorflow.keras as keras
 import dataset_utils
 import pickle
 import json
+# import seaborn as sn
+# import pandas as pd
+# import matplotlib.pyplot as plt
 
 from os.path import isfile, isdir, join, dirname
 from tensorflow.keras.activations import softmax, relu
@@ -12,6 +15,7 @@ from tensorflow.keras.layers import Conv2D, Flatten, Dense
 from python_speech_features import *
 from scipy.io import wavfile
 from ASRModel import ASRModel
+from sklearn.metrics import confusion_matrix
 
 MODEL_NAME = 'model.h5'
 INFO_NAME = 'param.json'
@@ -345,12 +349,58 @@ class CNN(ASRModel):
         Test the trained model, with
         :return:
         """
-        xy_test = self.load_dataset(testset_path, partitions='test')
-        if self.machine == 'blade':
-            metrics = self.model.evaluate(xy_test[0], steps=self.test_steps, max_queue_size=10, verbose=0)
-            metrics = {out: float(metrics[i]) for i, out in enumerate(self.model.metrics_names)}
-            print("output metrics: {} ".format(str(metrics)))
-        else:
-            metrics = self.model.evaluate(xy_test[0], steps=self.test_steps, max_queue_size=10, return_dict=True, verbose=0)
+        xy_test = self.load_dataset(testset_path, partitions='test')[0]
+
+        # calculate y_pred and label for each batch
+        steps = 0
+        labels, y_pred = np.array([], dtype=np.int64), np.array([], dtype=np.int64)
+        for xy_ in xy_test:
+            labels = np.concatenate((np.argmax(xy_[1], axis=1), labels))
+            y_pred = np.concatenate((np.argmax(self.model.predict(xy_[0]), axis=1), y_pred))
+            steps += 1
+            if steps >= self.test_steps:
+                break
+
+        # calculate output metrics
+        cm = confusion_matrix(labels, y_pred).tolist()
+
+        # tp, tn, fp, fn, tot_sample, true_positive
+        tot_sample = 0
+        true_positive = 0
+        cr = {ww: {"tp": 0, "tn": 0, "fp": 0, "fn": 0} for ww in self.wanted_words}
+        for i in range(len(cm)):
+            for j in range(len(cm[i])):
+                tot_sample += cm[i][j]
+
+                if i == j:
+                    true_positive += cm[i][j]
+                    cr[self.wanted_words[i]]["tp"] += cm[i][j]
+                else:
+                    cr[self.wanted_words[i]]["fn"] += cm[i][j]
+                    cr[self.wanted_words[j]]["fp"] += cm[i][j]
+
+        # precision and recall for each wanted_word
+        for ww in self.wanted_words:
+            precision = cr[ww]["tp"] / (cr[ww]["tp"] + cr[ww]["fp"]) if cr[ww]["tp"] + cr[ww]["fp"] != 0 else 0.0
+            support = cr[ww]["tp"] + cr[ww]["fn"]
+            recall = cr[ww]["tp"] / support if support != 0 else 0.0
+            cr[ww].update({"precision": precision,
+                           "recall": recall,
+                           "support": support})
+
+        # accuracy
+        accuracy = true_positive / tot_sample if tot_sample != 0 else 0.0
+
+        cr.update({"tot_sample": tot_sample, "accuracy": accuracy})
+        metrics = {"test_accuracy": accuracy,
+                   "report": cr,
+                   "confusion_matrix": cm}
+
         print("CNN test - {}".format(metrics))
+
+        # df_cm = pd.DataFrame(cm, index=self.wanted_words,
+        #                      columns=self.wanted_words)
+        # plt.figure()
+        # sn.heatmap(df_cm, annot=True)
+
         return metrics

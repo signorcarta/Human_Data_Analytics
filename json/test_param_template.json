@@ -1,6 +1,6 @@
 {
   "model_type": "CNN",
-  "model_id": "debug_xls",
+  "model_id": "debug_dii",
 
   "set_model_name": "debug",
 
@@ -13,7 +13,7 @@
   "preemph": 0.97,
 
   "trainset_id": "speech_commands_v0.02",
-  "wanted_words": ["bed", "stop", "seven", "up", "_unknown_"],
+  "wanted_words": ["backward", "follow", "right", "two", "bed", "forward", "marvin", "seven", "up", "bird", "four", "nine", "sheila", "cat", "go", "no", "six", "visual", "dog", "happy", "off", "stop", "wow", "down", "house", "on", "eight", "learn", "one", "three", "zero", "_unknown_"],
   "structure_id": "light_cnn",
   "filters": [64, 32],
   "kernel_size": [3, 3],
@@ -22,17 +22,14 @@
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 
-  "epochs": 10,
-  "t_batch_size": 500,
-  "steps_per_epoch": 10,
+  "epochs": 2,
+  "t_batch_size": 2500,
 
-  "validation_steps": 3,
-  "v_batch_size": 500,
-  "val_percentage": 10.0,
+  "v_batch_size": 2500,
+  "val_percentage": 2.5,
 
-  "test_batch_size": 500,
-  "test_steps": 4,
-  "test_percentage": 10.0,
+  "test_batch_size": 2500,
+  "test_percentage": 2.5,
   "unknown_percentage": 10.0,
 
   "testset_id": "speech_commands_v0.02"

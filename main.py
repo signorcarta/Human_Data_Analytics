@@ -137,7 +137,7 @@ def save_results(metrics, model_id):
         out_path = join(TEST_PATH, model_id + '_' + random_string(3) + '.json')
 
     with open(out_path, "w") as test_file:
-        json.dump(metrics, test_file)
+        json.dump(metrics, test_file, indent=2)
 
     return out_path
 
