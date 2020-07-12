@@ -1,3 +1,5 @@
+import shutil
+
 import numpy as np
 import os
 import tensorflow.keras as keras
@@ -254,11 +256,20 @@ class CNN(ASRModel):
         Train the builded model in the input dataset specified in the
         :return: the id of the builded model, useful to get the .h5 file
         """
+        # clean logs dir
+        if isdir("logs"):
+            shutil.rmtree("logs")
+        os.makedirs("logs")
 
+        my_callbacks = [keras.callbacks.TensorBoard(log_dir="logs"),
+                        keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=2, verbose=0,
+                                                          mode="auto", min_delta=1e-4, cooldown=1, min_lr=1e-3),
+                        keras.callbacks.TerminateOnNaN(),
+                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-7, patience=2, verbose=0, mode="auto")]
         print("CNN train")
         xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
         self.model.fit(x=xy_train, epochs=self.epochs, verbose=2, steps_per_epoch=self.steps_per_epoch,
-                       validation_steps=self.validation_steps,
+                       validation_steps=self.validation_steps, callbacks=my_callbacks[:1],
                        validation_data=xy_val, use_multiprocessing=False)
 
     @staticmethod
