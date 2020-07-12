@@ -6,9 +6,6 @@ import tensorflow.keras as keras
 import dataset_utils
 import pickle
 import json
-# import seaborn as sn
-# import pandas as pd
-# import matplotlib.pyplot as plt
 
 from os.path import isfile, isdir, join, dirname
 from tensorflow.keras.activations import softmax, relu
@@ -262,14 +259,14 @@ class CNN(ASRModel):
         os.makedirs("logs")
 
         my_callbacks = [keras.callbacks.TensorBoard(log_dir="logs"),
-                        keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=2, verbose=0,
-                                                          mode="auto", min_delta=1e-4, cooldown=1, min_lr=1e-3),
+                        keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.2, patience=3, verbose=0,
+                                                          mode="auto", min_delta=1e-4, cooldown=1, min_lr=1e-4),
                         keras.callbacks.TerminateOnNaN(),
-                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-7, patience=2, verbose=0, mode="auto")]
+                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-4, patience=2, verbose=1, mode="auto")]
         print("CNN train")
         xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
         self.model.fit(x=xy_train, epochs=self.epochs, verbose=2, steps_per_epoch=self.steps_per_epoch,
-                       validation_steps=self.validation_steps, callbacks=my_callbacks[:1],
+                       validation_steps=self.validation_steps, callbacks=my_callbacks[:],
                        validation_data=xy_val, use_multiprocessing=False)
 
     @staticmethod
@@ -408,10 +405,5 @@ class CNN(ASRModel):
                    "confusion_matrix": cm}
 
         print("CNN test - {}".format(metrics))
-
-        # df_cm = pd.DataFrame(cm, index=self.wanted_words,
-        #                      columns=self.wanted_words)
-        # plt.figure()
-        # sn.heatmap(df_cm, annot=True)
 
         return metrics
