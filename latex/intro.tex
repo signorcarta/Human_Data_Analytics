@@ -3,12 +3,12 @@
 \section{Introduction}
 \label{sec:introduction}
 
-\noindent \textbf{Paper contribution.} In this paper we describe how we implemented a keyword spotting system investigating different architechtures and learning techniques. \\
+\noindent \textbf{Paper contribution.} In this paper a keyword spotting system is implemented investigating different architechtures and learning techniques. \\
 
-\noindent \textbf{Dataset description.} We trained our systems through the "{\it speech\_commands}" dataset. It contains 105,829 utterances of 35 distinct words coming from 2,618 different persons, each one having the duration of at most one second, stored in {\it .wav} format files. The contained audio allow to reflect the trigger phrase task that a keyword spotting system aims at achieving and cope with noisy environments, poor quality recording tools or people taking in a natural way. \\\
+\noindent \textbf{Dataset description.} \cite{Warden-2018} The systems is trained on the \mbox{"{\it speech\_commands}"} dataset. It contains 105,829 utterances of 35 distinct words coming from 2,618 different persons, each one having the duration of at most one second, stored in {\it .wav} format files. The contained audio allow to reflect the trigger phrase task that a keyword spotting system aims at achieving and cope with noisy environments, poor quality recording tools or people taking in a natural way. \\
 
 \noindent  Several voice interfaces (i.e. Alexa, Siri, Cortana) rely on keyword spotting, for the detection of wake-up words that determine the beginning of an interaction. These systems are continuously listening for an audio input from the embedded microphones and, once a likely trigger phrase is detected, the interaction begins. 
-Our work addresses keyword spotting as a closed-set classification problem, as most of the existing solutions. We start by deploying a CNN-based architecture playing on different data preprocessing approaches and hyperparameters tuning. {\it to be continued}
+In this paper keyword spotting is addressed as a closed-set classification problem, as most of the existing solutions. Initially, a CNN-based architecture is deployed playing on different data preprocessing parameters and \mbox{Neural Network's} hyperparameters tuning. \red{{\it to be continued}}
 \begin{itemize} 
 \item \textbf{Present the paper contribution:} \red{ A third paragraph were you state what you do in the paper, this should also be concisely written. A good rule of thumb is to make it max 10/15 lines. Here, you should state up front:
 \begin{enumerate}
@@ -19,7 +19,6 @@ Our work addresses keyword spotting as a closed-set classification problem, as m
 \item \textbf{applicability}: tell the reader how she/he can take advantage of your work, e.g., how your work/results can be reused/exploited to achieve further scientific, technical or practical (integrated into products?) goals.
 \end{enumerate}
 \item \textbf{Summary of contributions:} After this, you may want to provide an itemized list to summarize the paper contributions. Rule of thumb: from three to six items, from three to four lines each.}
-\item \textbf{Paper structure):}In Section~I we introduce the problem and what we do in the paper. In Section~II we describe the related work and state of the art. The model architechtures are described in Sections~III and the obtained results are presented in Section~IV.  Concluding remarks are provided in Section~V.'
 \end{itemize}
-
+\noindent \textbf{Paper structure.} In Section~I we introduce the problem and what we do in the paper. In Section~II we describe the related work and state of the art. The processing pipeline is described in Sections~III. In Section~IV the data preprocessing and features extraction work is presented. Section~VI describes the learning framework. Obtained results are presented in Section~VI.  Concluding remarks are provided in Section~VII.
 
