@@ -3,12 +3,13 @@ import abc
 
 class ASRModel:
 
+    @staticmethod
     @abc.abstractmethod
-    def preprocess(self, audio_path: str):
+    def preprocess(audio_path):
         """
         from an input path, load the single audio and return preprocessed audio
         which will be the input of the net
-        :param audio_path: input audio path to preprocess
+        :param audio_path: input audio path to pre process
         :return: the preprocessed audio, the model input
         """
         pass

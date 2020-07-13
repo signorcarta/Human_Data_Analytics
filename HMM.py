@@ -9,7 +9,8 @@ class HMM(ASRModel):
     def __init__(self, model_id: str):
         self.model_id = model_id
 
-    def preprocess(self, audio_path: str):
+    @staticmethod
+    def preprocess(audio_path):
         """
         from an input path, load the single audio and return preprocessed audio
         which will be the input of the net

@@ -1,5 +1,4 @@
 import shutil
-
 import numpy as np
 import os
 import tensorflow.keras as keras
@@ -44,27 +43,23 @@ class CNN(ASRModel):
 
         # output initialization
         self.out_param = {}
+        self.wanted_words = []
 
         # Load or create model, wanted_words and info
         if isfile(model_path) or isfile(join(model_path, MODEL_NAME)):      # load existing model
             input_param.update(CNN.load_data(join(model_path, INFO_NAME)))
 
-            # compile model
+            # compile model, needed to load it
             self.optimizer = input_param["optimizer"]  # 'adam'
             self.loss = input_param["loss"]  # 'categorical_crossentropy'
             self.metrics = input_param["metrics"]  # ('accuracy')
 
             self.model = self.load_model(model_path)
-
-            self.wanted_words = input_param["wanted_words"]
-            self.numcep = input_param["numcep"]
             self.info = input_param["info"]
         elif isdir(model_path):                                             # create new model
             self.info = {}
-            self.wanted_words = input_param["wanted_words"]
-            self.numcep = input_param["numcep"]
 
-            self.model = CNN.build_model(len(input_param["wanted_words"]), input_shape=(99, self.numcep, 1))
+            self.model = CNN.build_model(len(input_param["wanted_words"]), input_shape=(99, input_param["numcep"], 1))
 
             # compile model
             self.optimizer = input_param["optimizer"]  # 'adam'
@@ -73,11 +68,14 @@ class CNN(ASRModel):
 
             # add UNKNOWN label to the dataset if not present
             # TODO: talk about unknown in the report
-            if dataset_utils.UNKNOWN not in self.wanted_words:
+            if dataset_utils.UNKNOWN not in input_param["wanted_words"]:
                 self.wanted_words.append(dataset_utils.UNKNOWN)
+
+        self.wanted_words = input_param["wanted_words"]
         self.wanted_words.sort()
 
         # preprocess param
+        self.numcep = input_param["numcep"]  #: 13
         self.winlen = input_param["winlen"]  #: 0.025,
         self.winstep = input_param["winstep"]  #: 0.01,
         self.nfilt = input_param["nfilt"]  #: 26,
@@ -116,7 +114,8 @@ class CNN(ASRModel):
 
         if isdir(trainset):
             x_train, y_train, x_val, y_val, x_test, y_test, info = \
-                dataset_utils.load_dataset(trainset, val_percentage=self.val_percentage, test_percentage=self.test_percentage)
+                dataset_utils.load_dataset(trainset, val_percentage=self.val_percentage,
+                                           test_percentage=self.test_percentage)
 
             if self.machine == "blade":
                 max_batch_size = 2500
@@ -184,10 +183,20 @@ class CNN(ASRModel):
 
         return out
 
-    def preprocess(self, audio):
+    @staticmethod
+    def preprocess(audio, winlen=0.025, numcep=13, winstep=0.01, nfilt=26, nfft=512, lowfreq=0, highfreq=None,
+                   preemph=0.97):
         """
         from an input path, load the single audio and return preprocessed audio
         which will be the input of the net
+        :param numcep:
+        :param preemph:
+        :param highfreq:
+        :param lowfreq:
+        :param nfft:
+        :param nfilt:
+        :param winstep:
+        :param winlen:
         :param audio: input audio path to preprocess
         :return: the preprocessed audio, the model input
         """
@@ -195,32 +204,26 @@ class CNN(ASRModel):
         # print("CNN preprocess")
         if isinstance(audio, str) and isfile(audio):
             fs, data = wavfile.read(audio)
-            data = np.array(audio, dtype=float)
+            data = np.array(data, dtype=float)
             data /= np.max(np.abs(data))
-            return mfcc(data, fs, winlen=0.025, winstep=0.01, nfilt=26, nfft=512, lowfreq=0, highfreq=None,
-                        preemph=0.97,
-                        winfunc=lambda x: np.ones((x,))).reshape((99, 13, 1))
+            data = mfcc(data, fs, winlen=winlen, numcep=numcep, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
+                        highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
+            return data.reshape((int(data.size/numcep), numcep, 1))
         elif isinstance(audio, np.ndarray):
             data = np.array(audio, dtype=float)
             data /= np.max(np.abs(data))
-            data = mfcc(data, 16000, winlen=0.025, winstep=0.01, nfilt=26, nfft=512, lowfreq=0, highfreq=None,
-                        preemph=0.97, winfunc=lambda x: np.ones((x,)))
-            return data.reshape((99, 13, 1))
+            data = mfcc(data, 16000, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
+                        highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
+            return data.reshape((int(data.size/numcep), numcep, 1))
         else:
             raise TypeError("Input audio can't be preprocessed, unsupported type: " + str(type(audio)))
 
-    def preprocess_gen(self, audios):
-        for data in audios:
-            data = np.array(data, dtype=float)
-            data /= np.max(np.abs(data))
-            yield mfcc(data, 16000, winlen=0.025, winstep=0.01, nfilt=26, nfft=512, lowfreq=0, highfreq=None,
-                       preemph=0.97, winfunc=lambda x: np.ones((x,))).reshape((99, 13, 1))
-
-    def batch_preprocessing_gen(self, mnist_val, k_list, ww_size):
+    @staticmethod
+    def batch_preprocessing_gen(mnist_val, k_list, ww_size):
         for sample in mnist_val:
             batch = sample[k_list[0]]
             labels = sample[k_list[1]]
-            preprocessed_batch = np.array([self.preprocess(data) for data in batch])
+            preprocessed_batch = np.array([CNN.preprocess(data) for data in batch])
             preprocessed_label = np.array(
                 [np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1))) for l in labels])
             # print(preprocessed_label)
@@ -239,12 +242,10 @@ class CNN(ASRModel):
         model.add(Conv2D(32, kernel_size=3, activation=relu))
         model.add(Flatten())
         model.add(Dense(output_shape, activation=softmax))  # 11 nodes at output layer (can be changed)
-        # self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
         model.compile(loss=keras.losses.categorical_crossentropy,
                       optimizer=keras.optimizers.SGD(lr=0.01),
                       metrics=['accuracy'])
-        # my_optimizers = [keras.optimizers.Adam(), keras.optimizers.SGD(nesterov=True)]
-        # model.compile(optimizer=[my_optimizers], loss='categorical_crossentropy', metrics=['accuracy'])
 
         return model
 
