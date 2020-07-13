@@ -2,9 +2,11 @@ import shutil
 import numpy as np
 import os
 import tensorflow.keras as keras
+
 import dataset_utils
 import pickle
 import json
+
 
 from os.path import isfile, isdir, join, dirname
 from tensorflow.keras.activations import softmax, relu
@@ -14,6 +16,7 @@ from python_speech_features import *
 from scipy.io import wavfile
 from ASRModel import ASRModel
 from sklearn.metrics import confusion_matrix
+from matplotlib import mlab
 
 MODEL_NAME = 'model.h5'
 INFO_NAME = 'param.json'
@@ -59,7 +62,7 @@ class CNN(ASRModel):
         elif isdir(model_path):                                             # create new model
             self.info = {}
 
-            self.model = CNN.build_model(len(input_param["wanted_words"]), input_shape=(99, input_param["numcep"], 1))
+            self.model = CNN.build_model(len(input_param["wanted_words"]), input_shape=input_param["input_shape"])  # input_shape=(99, input_param["numcep"], 1))
 
             # compile model
             self.optimizer = input_param["optimizer"]  # 'adam'
@@ -81,6 +84,7 @@ class CNN(ASRModel):
         self.nfilt = input_param["nfilt"]  #: 26,
         self.nfft = input_param["nfft"]  #: 512,
         self.preemph = input_param["preemph"]  #: 0.97,
+        self.input_shape = input_param["input_shape"]
 
         # param to build model
         self.structure_id = input_param["structure_id"]  #: "light_cnn",
@@ -185,7 +189,7 @@ class CNN(ASRModel):
 
     @staticmethod
     def preprocess(audio, winlen=0.025, numcep=13, winstep=0.01, nfilt=26, nfft=512, lowfreq=0, highfreq=None,
-                   preemph=0.97):
+                   preemph=0.97, type='mfcc'):
         """
         from an input path, load the single audio and return preprocessed audio
         which will be the input of the net
@@ -202,28 +206,184 @@ class CNN(ASRModel):
         """
 
         # print("CNN preprocess")
-        if isinstance(audio, str) and isfile(audio):
-            fs, data = wavfile.read(audio)
-            data = np.array(data, dtype=float)
-            data /= np.max(np.abs(data))
-            data = mfcc(data, fs, winlen=winlen, numcep=numcep, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
-                        highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
-            return data.reshape((int(data.size/numcep), numcep, 1))
-        elif isinstance(audio, np.ndarray):
-            data = np.array(audio, dtype=float)
-            data /= np.max(np.abs(data))
-            data = mfcc(data, 16000, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
-                        highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
-            return data.reshape((int(data.size/numcep), numcep, 1))
-        else:
-            raise TypeError("Input audio can't be preprocessed, unsupported type: " + str(type(audio)))
+        if type == 'mfcc':
+            if isinstance(audio, str) and isfile(audio):
+                fs, data = wavfile.read(audio)
+                data = np.array(data, dtype=float)
+                data /= np.max(np.abs(data))
+                data = mfcc(data, fs, winlen=winlen, numcep=numcep, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
+                            highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
+                return data.reshape((int(data.size/numcep), numcep, 1))
+            elif isinstance(audio, np.ndarray):
+                data = np.array(audio, dtype=float)
+                data /= np.max(np.abs(data))
+                data = mfcc(data, 16000, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
+                            highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
+                return data.reshape((int(data.size/numcep), numcep, 1))
+            else:
+                raise TypeError("Input audio can't be preprocessed, unsupported type: " + str(type(audio)))
+        elif type == 'specgram':
+            if isinstance(audio, str) and isfile(audio):
+                fs, data = wavfile.read(audio)
+                data = np.array(data, dtype=float)
+                data /= np.max(np.abs(data))
+                data, freq = CNN.specgram(data, Fs=fs)
+                return data.reshape((len(data), len(data[0]), 1))
+            elif isinstance(audio, np.ndarray):
+                data = np.array(audio, dtype=float)
+                data /= np.max(np.abs(data))
+                data, freq = CNN.specgram(data, Fs=16000)
+                return data.reshape((len(data), len(data[0]), 1))
+            else:
+                raise TypeError("Input audio can't be preprocessed, unsupported type: " + str(type(audio)))
 
     @staticmethod
-    def batch_preprocessing_gen(mnist_val, k_list, ww_size):
+    def specgram(x, NFFT=None, Fs=None, Fc=None, detrend=None, window=None, noverlap=None,
+                 pad_to=None, sides=None, scale_by_freq=None, mode=None,
+                 scale=None):
+        """
+        Plot a spectrogram.
+
+        Compute and plot a spectrogram of data in *x*.  Data are split into
+        *NFFT* length segments and the spectrum of each section is
+        computed.  The windowing function *window* is applied to each
+        segment, and the amount of overlap of each segment is
+        specified with *noverlap*. The spectrogram is plotted as a colormap
+        (using imshow).
+
+        Parameters
+        ----------
+        x : 1-D array or sequence
+            Array or sequence containing the data.
+
+        %(Spectral)s
+
+        %(PSD)s
+
+        mode : {'default', 'psd', 'magnitude', 'angle', 'phase'}
+            What sort of spectrum to use.  Default is 'psd', which takes the
+            power spectral density.  'magnitude' returns the magnitude
+            spectrum.  'angle' returns the phase spectrum without unwrapping.
+            'phase' returns the phase spectrum with unwrapping.
+
+        noverlap : int
+            The number of points of overlap between blocks.  The
+            default value is 128.
+
+        scale : {'default', 'linear', 'dB'}
+            The scaling of the values in the *spec*.  'linear' is no scaling.
+            'dB' returns the values in dB scale.  When *mode* is 'psd',
+            this is dB power (10 * log10).  Otherwise this is dB amplitude
+            (20 * log10). 'default' is 'dB' if *mode* is 'psd' or
+            'magnitude' and 'linear' otherwise.  This must be 'linear'
+            if *mode* is 'angle' or 'phase'.
+
+        Fc : int
+            The center frequency of *x* (defaults to 0), which offsets
+            the x extents of the plot to reflect the frequency range used
+            when a signal is acquired and then filtered and downsampled to
+            baseband.
+
+        cmap
+            A :class:`matplotlib.colors.Colormap` instance; if *None*, use
+            default determined by rc
+
+        xextent : *None* or (xmin, xmax)
+            The image extent along the x-axis. The default sets *xmin* to the
+            left border of the first bin (*spectrum* column) and *xmax* to the
+            right border of the last bin. Note that for *noverlap>0* the width
+            of the bins is smaller than those of the segments.
+
+        **kwargs
+            Additional keyword arguments are passed on to imshow which makes
+            the specgram image.
+
+        Returns
+        -------
+        spectrum : 2-D array
+            Columns are the periodograms of successive segments.
+
+        freqs : 1-D array
+            The frequencies corresponding to the rows in *spectrum*.
+
+        t : 1-D array
+            The times corresponding to midpoints of segments (i.e., the columns
+            in *spectrum*).
+
+        im : instance of class :class:`~matplotlib.image.AxesImage`
+            The image created by imshow containing the spectrogram
+
+        See Also
+        --------
+        :func:`psd`
+            :func:`psd` differs in the default overlap; in returning the mean
+            of the segment periodograms; in not returning times; and in
+            generating a line plot instead of colormap.
+
+        :func:`magnitude_spectrum`
+            A single spectrum, similar to having a single segment when *mode*
+            is 'magnitude'. Plots a line instead of a colormap.
+
+        :func:`angle_spectrum`
+            A single spectrum, similar to having a single segment when *mode*
+            is 'angle'. Plots a line instead of a colormap.
+
+        :func:`phase_spectrum`
+            A single spectrum, similar to having a single segment when *mode*
+            is 'phase'. Plots a line instead of a colormap.
+
+        Notes
+        -----
+        The parameters *detrend* and *scale_by_freq* do only apply when *mode*
+        is set to 'psd'.
+        """
+        if NFFT is None:
+            NFFT = 256  # same default as in mlab.specgram()
+        if Fc is None:
+            Fc = 0  # same default as in mlab._spectral_helper()
+        if noverlap is None:
+            noverlap = 128  # same default as in mlab.specgram()
+
+        if mode == 'complex':
+            raise ValueError('Cannot plot a complex specgram')
+
+        if scale is None or scale == 'default':
+            if mode in ['angle', 'phase']:
+                scale = 'linear'
+            else:
+                scale = 'dB'
+        elif mode in ['angle', 'phase'] and scale == 'dB':
+            raise ValueError('Cannot use dB scale with angle or phase mode')
+
+        spec, freqs, t = mlab.specgram(x=x, NFFT=NFFT, Fs=Fs,
+                                       detrend=detrend, window=window,
+                                       noverlap=noverlap, pad_to=pad_to,
+                                       sides=sides,
+                                       scale_by_freq=scale_by_freq,
+                                       mode=mode)
+
+        if scale == 'linear':
+            Z = spec
+        elif scale == 'dB':
+            if mode is None or mode == 'default' or mode == 'psd':
+                Z = 10. * np.log10(spec)
+            else:
+                Z = 20. * np.log10(spec)
+        else:
+            raise ValueError('Unknown scale %s', scale)
+
+        Z = np.flipud(Z)
+        Z = np.abs(Z)
+        Z = 1 - Z / np.max(Z)
+        return Z, freqs
+
+    def batch_preprocessing_gen(self, mnist_val, k_list, ww_size):
         for sample in mnist_val:
             batch = sample[k_list[0]]
             labels = sample[k_list[1]]
-            preprocessed_batch = np.array([CNN.preprocess(data) for data in batch])
+            preprocessed_batch = np.array([CNN.preprocess(data, winlen=0.025, numcep=13, winstep=0.01, nfilt=26, nfft=512,
+                                                          lowfreq=0, highfreq=None, preemph=0.97, type='specgram')
+                                           for data in batch])
             preprocessed_label = np.array(
                 [np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1))) for l in labels])
             # print(preprocessed_label)
