@@ -7,9 +7,9 @@ import pickle
 import json
 
 from os.path import isfile, isdir, join, dirname
-from tensorflow.keras.activations import softmax, relu
+from tensorflow.keras.activations import softmax, relu, sigmoid
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Conv2D, Flatten, Dense
+from tensorflow.keras.layers import Conv2D, Flatten, Dense, Dropout, MaxPool2D
 from python_speech_features import *
 from scipy.io import wavfile
 from ASRModel import ASRModel
@@ -49,6 +49,13 @@ class CNN(ASRModel):
         if isfile(model_path) or isfile(join(model_path, MODEL_NAME)):      # load existing model
             input_param.update(CNN.load_data(join(model_path, INFO_NAME)))
 
+            self.wanted_words = input_param["wanted_words"]
+
+            # param to build model
+            self.structure_id = input_param["structure_id"]  #: "light_cnn",
+            self.filters = input_param["filters"]  #: [64, 32],
+            self.kernel_size = input_param["kernel_size"]  #: [3, 3],
+
             # compile model, needed to load it
             self.optimizer = input_param["optimizer"]  # 'adam'
             self.loss = input_param["loss"]  # 'categorical_crossentropy'
@@ -59,20 +66,26 @@ class CNN(ASRModel):
         elif isdir(model_path):                                             # create new model
             self.info = {}
 
-            self.model = CNN.build_model(len(input_param["wanted_words"]), input_shape=(99, input_param["numcep"], 1))
+            # param to build model
+            self.structure_id = input_param["structure_id"]  #: "light_cnn",
+            self.filters = input_param["filters"]  #: [64, 32],
+            self.kernel_size = input_param["kernel_size"]  #: [3, 3],
 
             # compile model
             self.optimizer = input_param["optimizer"]  # 'adam'
             self.loss = input_param["loss"]  # 'categorical_crossentropy'
             self.metrics = input_param["metrics"]  # ('accuracy')
 
+            self.wanted_words = input_param["wanted_words"]
+            self.wanted_words.sort()
+
             # add UNKNOWN label to the dataset if not present
             # TODO: talk about unknown in the report
             if dataset_utils.UNKNOWN not in input_param["wanted_words"]:
                 self.wanted_words.append(dataset_utils.UNKNOWN)
+            self.wanted_words.sort()
 
-        self.wanted_words = input_param["wanted_words"]
-        self.wanted_words.sort()
+            self.model = self.build_model(input_shape=(99, input_param["numcep"], 1))
 
         # preprocess param
         self.numcep = input_param["numcep"]  #: 13
@@ -81,11 +94,6 @@ class CNN(ASRModel):
         self.nfilt = input_param["nfilt"]  #: 26,
         self.nfft = input_param["nfft"]  #: 512,
         self.preemph = input_param["preemph"]  #: 0.97,
-
-        # param to build model
-        self.structure_id = input_param["structure_id"]  #: "light_cnn",
-        self.filters = input_param["filters"]  #: [64, 32],
-        self.kernel_size = input_param["kernel_size"]  #: [3, 3],
 
         # input dataset of the model
         self.trainset_id = input_param["trainset_id"]
@@ -108,8 +116,6 @@ class CNN(ASRModel):
 
         self.unknown_percentage = input_param["unknown_percentage"]  # 10.
 
-        # test
-
     def load_dataset(self, trainset, partitions=('train', 'validation')):
 
         if isdir(trainset):
@@ -118,7 +124,7 @@ class CNN(ASRModel):
                                            test_percentage=self.test_percentage)
 
             if self.machine == "blade":
-                max_batch_size = 2500
+                max_batch_size = 10000
             else:
                 max_batch_size = 2500
 
@@ -205,15 +211,17 @@ class CNN(ASRModel):
         if isinstance(audio, str) and isfile(audio):
             fs, data = wavfile.read(audio)
             data = np.array(data, dtype=float)
-            data /= np.max(np.abs(data))
             data = mfcc(data, fs, winlen=winlen, numcep=numcep, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
                         highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
+            data = np.abs(data)
+            data = data / np.max(data)
             return data.reshape((int(data.size/numcep), numcep, 1))
         elif isinstance(audio, np.ndarray):
             data = np.array(audio, dtype=float)
-            data /= np.max(np.abs(data))
             data = mfcc(data, 16000, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
                         highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
+            data = np.abs(data)
+            data = data / np.max(data)
             return data.reshape((int(data.size/numcep), numcep, 1))
         else:
             raise TypeError("Input audio can't be preprocessed, unsupported type: " + str(type(audio)))
@@ -229,23 +237,53 @@ class CNN(ASRModel):
             # print(preprocessed_label)
             yield preprocessed_batch, preprocessed_label
 
-    @staticmethod
-    def build_model(output_shape, input_shape=(99, 13, 1)):
+    def build_model(self, input_shape=(99, 13, 1)):
         """
         Create the model structure with the parameters specified
         :return:
         """
         print("CNN build_model")
-        # add layers [! input shape must be (28,28,1) !]
-        model = Sequential()
-        model.add(Conv2D(64, kernel_size=3, activation=relu, input_shape=input_shape))
-        model.add(Conv2D(32, kernel_size=3, activation=relu))
-        model.add(Flatten())
-        model.add(Dense(output_shape, activation=softmax))  # 11 nodes at output layer (can be changed)
 
-        model.compile(loss=keras.losses.categorical_crossentropy,
-                      optimizer=keras.optimizers.SGD(lr=0.01),
-                      metrics=['accuracy'])
+        model = Sequential()
+        if self.structure_id == 'light_cnn':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'light_cnn_sigmoid':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=sigmoid))
+        elif self.structure_id == 'dd': # doesn't work
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words)*1, activation=softmax))
+            model.add(Dropout(.8))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp_drop':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=relu))
+            model.add(Dropout(.8))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+
+        my_optimizer = keras.optimizers.SGD(learning_rate=0.005) if self.optimizer == "" else self.optimizer
+        self.optimizer = my_optimizer
+        model.compile(loss=self.loss, optimizer=my_optimizer, metrics=self.metrics)
 
         return model
 
@@ -254,16 +292,17 @@ class CNN(ASRModel):
         Train the builded model in the input dataset specified in the
         :return: the id of the builded model, useful to get the .h5 file
         """
-        # clean logs dir
-        if isdir("logs"):
-            shutil.rmtree("logs")
-        os.makedirs("logs")
+        # prepare logs dir for tensorboard
+        tensorboard_dir = join("logs", self.model_id)
+        if isdir(tensorboard_dir):
+            shutil.rmtree(tensorboard_dir)
+        os.makedirs(tensorboard_dir)
 
-        my_callbacks = [keras.callbacks.TensorBoard(log_dir="logs"),
-                        keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.2, patience=3, verbose=0,
-                                                          mode="auto", min_delta=1e-4, cooldown=1, min_lr=1e-4),
+        my_callbacks = [keras.callbacks.TensorBoard(log_dir=tensorboard_dir),
+                        keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=2, verbose=0,
+                                                          mode="auto", min_delta=1e-2, cooldown=1, min_lr=1e-4),
                         keras.callbacks.TerminateOnNaN(),
-                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-4, patience=2, verbose=1, mode="auto")]
+                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=3, verbose=1, mode="auto")]
         print("CNN train")
         xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
         self.model.fit(x=xy_train, epochs=self.epochs, verbose=2, steps_per_epoch=self.steps_per_epoch,
@@ -294,7 +333,6 @@ class CNN(ASRModel):
         else:
             raise ModelPathError("Invalid model path: {}".format(model_path))
 
-        model.compile(optimizer=self.optimizer, loss=self.loss, metrics=self.metrics)
         return model
 
     def save_model(self):
@@ -342,7 +380,6 @@ class CNN(ASRModel):
                     "test_steps": self.test_steps,
                     "test_percentage": self.test_percentage,
                     "unknown_percentage": self.unknown_percentage
-
                     }
         with open(join(self.model_path, INFO_NAME), 'w') as info_file:
             json.dump(cnn_data, info_file, indent=2, sort_keys=True)
@@ -365,7 +402,8 @@ class CNN(ASRModel):
         labels, y_pred = np.array([], dtype=np.int64), np.array([], dtype=np.int64)
         for xy_ in xy_test:
             labels = np.concatenate((np.argmax(xy_[1], axis=1), labels))
-            y_pred = np.concatenate((np.argmax(self.model.predict(xy_[0]), axis=1), y_pred))
+            prediction = self.model.predict(xy_[0])
+            y_pred = np.concatenate((np.argmax(prediction, axis=1), y_pred))
             steps += 1
             if steps >= self.test_steps:
                 break
@@ -388,14 +426,12 @@ class CNN(ASRModel):
                     cr[self.wanted_words[i]]["fn"] += cm[i][j]
                     cr[self.wanted_words[j]]["fp"] += cm[i][j]
 
-        # precision and recall for each wanted_word
+        # support, precision and recall for each wanted_word
         for ww in self.wanted_words:
             precision = cr[ww]["tp"] / (cr[ww]["tp"] + cr[ww]["fp"]) if cr[ww]["tp"] + cr[ww]["fp"] != 0 else 0.0
             support = cr[ww]["tp"] + cr[ww]["fn"]
             recall = cr[ww]["tp"] / support if support != 0 else 0.0
-            cr[ww].update({"precision": precision,
-                           "recall": recall,
-                           "support": support})
+            cr[ww].update({"precision": precision, "recall": recall, "support": support})
 
         # accuracy
         accuracy = true_positive / tot_sample if tot_sample != 0 else 0.0

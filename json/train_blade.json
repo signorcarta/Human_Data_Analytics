@@ -17,7 +17,7 @@
   "filters": [64, 32],
   "kernel_size": [3, 3],
 
-  "optimizer": "adam",
+  "optimizer": "SGD",
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 

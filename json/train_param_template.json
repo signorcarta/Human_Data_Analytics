@@ -2,7 +2,7 @@
   "model_type": "CNN",
 
   "set_model_name": "debug",
-
+  "structure_id": "mp_drop",
 
   "winlen": 0.025,
   "winstep": 0.01,
@@ -12,16 +12,19 @@
   "preemph": 0.97,
 
   "trainset_id": "speech_commands_v0.02",
-  "wanted_words": ["backward", "follow", "right", "two", "bed", "forward", "marvin", "seven", "up", "bird", "four", "nine", "sheila", "cat", "go", "no", "six", "visual", "dog", "happy", "off", "stop", "wow", "down", "house", "on", "eight", "learn", "one", "three", "zero", "_unknown_"],
-  "structure_id": "light_cnn",
-  "filters": [64, 32],
+  "wanted_words": ["backward", "follow", "right", "two", "bed", "forward",
+                    "marvin", "seven", "up", "bird", "four", "nine", "sheila",
+                    "cat", "go", "no", "six", "visual", "dog", "happy", "off",
+                    "stop", "wow", "down", "house", "on", "eight", "learn",
+                    "one", "three", "zero", "yes", "_unknown_"],
+  "filters": [32, 32],
   "kernel_size": [3, 3],
 
-  "optimizer": "adam",
+  "optimizer": "SGD",
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 
-  "epochs": 2,
+  "epochs": 5,
   "t_batch_size": 2500,
 
   "v_batch_size": 2500,

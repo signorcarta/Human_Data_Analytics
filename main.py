@@ -17,7 +17,7 @@ JSON_PATH = "json"
 if os.path.isdir("/nfsd"):  # the program is running in the cluster
     TRAIN_PATH = "/nfsd/hda/DATASETS/"
     MACHINE = "blade"
-elif os.path.isdir("train"):  # the program is not running in the cluster
+elif os.path.isdir("trainset"):  # the program is not running in the cluster
     TRAIN_PATH = "trainset"
     MACHINE = platform.uname()[1]  # 'jarvis-vivobooks15'
 TEST_PATH = "test"
@@ -141,6 +141,7 @@ def save_results(metrics, model_id):
 
     return out_path
 
+
 def real_time_asr(params: Dict):
     """
     load the trained model from filesystem, start a session for real time ASR
@@ -149,35 +150,23 @@ def real_time_asr(params: Dict):
     assert "model_id" in params
 
 
-if __name__ == "__main__":
-    # parse input
-    parser = argparse.ArgumentParser(description='Process input param')
-    parser.add_argument('--action', '-a', type=str, help='Which type of action to perform? (train/test/rtasr')
-    parser.add_argument('--model', '-m', type=str, help='Model name to load (not the path)')
-    parser.add_argument('--set_model_name', type=str, help='Model name to load (not the path)')
-    parser.add_argument('--trainset', '--train', '-tr', type=str, help='train set name to use (not the path)')
-    parser.add_argument('--testset', '--test', '-te', type=str, help='test set name to use (not the path)')
-    parser.add_argument('--json', type=str, help='test set name to use (not the path)')
-
-    args = parser.parse_args()
-
-    print(str(args))
-
+def main(action, json, multi_test=None, set_model_name=None):
     # check and load input parameters
-    assert os.path.exists(args.json), "invalid path for parameters {}".format(args.json)
-    assert args.json.endswith(".json"), "--json file format not supported: {}".format(args.json.split(".")[-1])
-    params = load_json(args.json)  # a dictionary with all the parameter to train, test or rtasr
+    assert os.path.exists(json), "invalid path for parameters {}".format(json)
+    assert json.endswith(".json"), "--json file format not supported: {}".format(json.split(".")[-1])
+    params = load_json(json)  # a dictionary with all the parameter to train, test or rtasr
+    multi_params = load_json(multi_test) if multi_test is not None else None
 
     params.update({"machine": MACHINE})
 
     # check extra parameters
-    for action in args.action.split(','):
-        assert action in SUPPORTED_ACTION, \
-            "specified action is not supported {} try with {}".format(args.action, str(SUPPORTED_ACTION))
+    for act in action.split(','):
+        assert act in SUPPORTED_ACTION, \
+            "specified action is not supported {} try with {}".format(act, str(SUPPORTED_ACTION))
 
     # add extra parameters
-    if args.set_model_name is not None:
-        params["set_model_name"] = args.set_model_name  # should be use for debugging
+    if set_model_name is not None:
+        params["set_model_name"] = set_model_name  # should be use for debugging
 
     # create dir if does not exist
     if not os.path.exists(JSON_PATH):
@@ -192,11 +181,31 @@ if __name__ == "__main__":
         os.makedirs(RES_PATH)
 
     # train, test and/or real time ASR ?
-    if "train" in args.action:
+    if "train" in action:
         params["model_id"] = train(params)  # set the model_id to eventually test or rtasr the trained model
-    if "test" in args.action:
+    if "test" in action:
         test(params)
-    if "rtasr" in args.action:  # real time ASR
+    if "rtasr" in action:  # real time ASR
         real_time_asr(params)
+
+    pass
+
+
+if __name__ == "__main__":
+    # parse input
+    parser = argparse.ArgumentParser(description='Process input param')
+    parser.add_argument('--action', '-a', type=str, help='Which type of action to perform? (train/test/rtasr')
+    parser.add_argument('--model', '-m', type=str, help='Model name to load (not the path)')
+    parser.add_argument('--set_model_name', type=str, help='Model name to load (not the path)')
+    parser.add_argument('--trainset', '--train', '-tr', type=str, help='train set name to use (not the path)')
+    parser.add_argument('--testset', '--test', '-te', type=str, help='test set name to use (not the path)')
+    parser.add_argument('--json', type=str, help='test set name to use (not the path)')
+    parser.add_argument('--multitest', type=str, help='test set name to use (not the path)')
+
+    args = parser.parse_args()
+
+    print(str(args))
+
+    main(args.action, args.json, multi_test=args.multitest)
 
     print("Exit correctly")
