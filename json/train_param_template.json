@@ -2,7 +2,7 @@
   "model_type": "CNN",
 
   "set_model_name": "debug",
-  "structure_id": "light_cnn_reg",
+  "structure_id": "light_cnn",
 
   "winlen": 0.025,
   "winstep": 0.01,
@@ -24,13 +24,13 @@
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 
-  "epochs": 5,
-  "t_batch_size": 500,
+  "epochs": 15,
+  "t_batch_size": 2500,
 
-  "v_batch_size": 500,
+  "v_batch_size": 2500,
   "val_percentage": 2.5,
 
-  "test_batch_size": 500,
+  "test_batch_size": 2500,
   "test_percentage": 2.5,
   "unknown_percentage": 3.0,
 
