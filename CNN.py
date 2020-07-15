@@ -10,6 +10,7 @@ from os.path import isfile, isdir, join, dirname
 from tensorflow.keras.activations import softmax, relu, sigmoid
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Conv2D, Flatten, Dense, Dropout, MaxPool2D
+from tensorflow.keras import regularizers
 from python_speech_features import *
 from scipy.io import wavfile
 from ASRModel import ASRModel
@@ -147,7 +148,7 @@ class CNN(ASRModel):
 
             g_train = dataset_utils.dataset_generator(x_train, y_train, self.info, self.wanted_words,
                                                       batch_size=self.t_batch_size, tot_size=-1,
-                                                      unknown_percentage=self.unknown_percentage)
+                                                      unknown_percentage=self.unknown_percentage, balanced=True)
             g_val = dataset_utils.dataset_generator(x_val, y_val, self.info, self.wanted_words,
                                                     batch_size=self.v_batch_size, tot_size=-1,
                                                     unknown_percentage=self.unknown_percentage)
@@ -244,48 +245,84 @@ class CNN(ASRModel):
         """
         print("CNN build_model")
 
-        model = Sequential()
+        self.model = Sequential()
         if self.structure_id == 'light_cnn':
-            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
-            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
-            model.add(Flatten())
-            model.add(Dense(len(self.wanted_words), activation=softmax))
+            self.model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            self.model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            self.model.add(Flatten())
+            self.model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'light_cnn_reg':
+            self.model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
+                            bias_regularizer=regularizers.l2(1e-3),
+                            activity_regularizer=regularizers.l2(1e-3)))
+            self.model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
+                            bias_regularizer=regularizers.l2(1e-3),
+                            activity_regularizer=regularizers.l2(1e-3)))
+            self.model.add(Flatten())
+            self.model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'light_cnn_sigmoid':
-            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
-            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
-            model.add(Flatten())
-            model.add(Dense(len(self.wanted_words), activation=sigmoid))
+            self.model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            self.model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            self.model.add(Flatten())
+            self.model.add(Dense(len(self.wanted_words), activation=sigmoid))
         elif self.structure_id == 'dd': # doesn't work
-            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
-            model.add(MaxPool2D((2, 2)))
-            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
-            model.add(MaxPool2D((2, 2)))
-            model.add(Flatten())
-            model.add(Dense(len(self.wanted_words)*1, activation=softmax))
-            model.add(Dropout(.8))
-            model.add(Dense(len(self.wanted_words), activation=softmax))
+            self.model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            self.model.add(MaxPool2D((2, 2)))
+            self.model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            self.model.add(MaxPool2D((2, 2)))
+            self.model.add(Flatten())
+            self.model.add(Dense(len(self.wanted_words)*1, activation=softmax))
+            self.model.add(Dropout(.8))
+            self.model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'mp':
-            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
-            model.add(MaxPool2D((2, 2)))
-            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
-            model.add(MaxPool2D((2, 2)))
-            model.add(Flatten())
-            model.add(Dense(len(self.wanted_words), activation=softmax))
+            self.model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            self.model.add(MaxPool2D((2, 2)))
+            self.model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            self.model.add(MaxPool2D((2, 2)))
+            self.model.add(Flatten())
+            self.model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'mp_drop':
-            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
-            model.add(MaxPool2D((2, 2)))
-            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
-            model.add(MaxPool2D((2, 2)))
-            model.add(Flatten())
-            model.add(Dense(int(len(self.wanted_words)*1.5), activation=relu))
-            model.add(Dropout(.8))
-            model.add(Dense(len(self.wanted_words), activation=softmax))
+            self.model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            self.model.add(MaxPool2D((2, 2)))
+            self.model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            self.model.add(MaxPool2D((2, 2)))
+            self.model.add(Flatten())
+            self.model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid))
+            self.model.add(Dropout(.8))
+            self.model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp_drop_reg':  # acc 0.034 with l2 1e-5
+            self.model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-2, l2=1e-2),
+                            bias_regularizer=regularizers.l2(1e-2),
+                            activity_regularizer=regularizers.l2(1e-2)
+                             ))
+            self.model.add(MaxPool2D((2, 2)))
+            self.model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-2, l2=1e-2),
+                            bias_regularizer=regularizers.l2(1e-2),
+                            activity_regularizer=regularizers.l2(1e-2)
+                             ))
+            self.model.add(MaxPool2D((2, 2)))
+            self.model.add(Flatten())
+            self.model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-2, l2=1e-2),
+                            bias_regularizer=regularizers.l2(1e-2),
+                            activity_regularizer=regularizers.l2(1e-2)
+                            ))
+            self.model.add(Dropout(.8))
+            self.model.add(Dense(len(self.wanted_words), activation=softmax,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-2, l2=1e-2),
+                            bias_regularizer=regularizers.l2(1e-2),
+                            activity_regularizer=regularizers.l2(1e-2)
+                            ))
 
-        my_optimizer = keras.optimizers.SGD(learning_rate=0.005) if self.optimizer == "" else self.optimizer
+        my_optimizer = keras.optimizers.SGD(learning_rate=0.01)  #  if self.optimizer == "" else self.optimizer
         self.optimizer = my_optimizer
-        model.compile(loss=self.loss, optimizer=my_optimizer, metrics=self.metrics)
+        self.model.compile(loss=self.loss, optimizer=my_optimizer, metrics=self.metrics)
 
-        return model
+        return self.model
 
     def train(self, trainset):
         """
@@ -299,14 +336,15 @@ class CNN(ASRModel):
         os.makedirs(tensorboard_dir)
 
         my_callbacks = [keras.callbacks.TensorBoard(log_dir=tensorboard_dir),
-                        keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=2, verbose=0,
-                                                          mode="auto", min_delta=1e-2, cooldown=1, min_lr=1e-4),
+                        keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=3, verbose=0,
+                                                          mode="auto", min_delta=5e-3, cooldown=1, min_lr=1e-4),
                         keras.callbacks.TerminateOnNaN(),
                         keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=3, verbose=1, mode="auto")]
         print("CNN train")
         xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
+
         self.model.fit(x=xy_train, epochs=self.epochs, verbose=2, steps_per_epoch=self.steps_per_epoch,
-                       validation_steps=self.validation_steps, callbacks=my_callbacks[:],
+                       validation_steps=self.validation_steps, callbacks=my_callbacks[:1],
                        validation_data=xy_val, use_multiprocessing=False)
 
     @staticmethod

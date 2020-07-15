@@ -18,6 +18,7 @@ def cm_plot(cm, wanted_words, model_id, save=False):
     if save:
         plt.savefig(join("res", model_id + "_cm"))
     plt.show()
+    pass
 
 
 def load_model_res_and_data(model_id):
@@ -53,7 +54,7 @@ def single_model_results(model_id, save=False):
 
 
 if __name__ == "__main__":
-    if sys.argv[1] in (True, False):
-        all_models_results(sys.argv[1])
+    if sys.argv[1] in ("True", "False"):
+        all_models_results(save=sys.argv[1])
     else:
         single_model_results(sys.argv[1])
