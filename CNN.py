@@ -363,7 +363,7 @@ class CNN(ASRModel):
             shutil.rmtree(tensorboard_dir)
         os.makedirs(tensorboard_dir)
 
-        my_callbacks = [keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=3, verbose=0,
+        my_callbacks = [keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=3, verbose=1,
                                                           mode="auto", min_delta=5e-3, cooldown=1, min_lr=1e-4),
                         keras.callbacks.TerminateOnNaN(),
                         keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=3, verbose=1, mode="auto")]
@@ -375,7 +375,7 @@ class CNN(ASRModel):
         xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
         init = time.time()
         self.model.fit(x=xy_train, epochs=self.epochs, verbose=2, steps_per_epoch=self.steps_per_epoch,
-                       validation_steps=self.validation_steps, callbacks=my_callbacks[:1],  # TODO: activate callback
+                       validation_steps=self.validation_steps, callbacks=my_callbacks[:2],  # TODO: activate callback
                        validation_data=xy_val, use_multiprocessing=False)
         self.training_time = time.time() - init
 
