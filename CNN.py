@@ -265,6 +265,13 @@ class CNN(ASRModel):
             model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
             model.add(Flatten())
             model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'light_cnn_reg_drop':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5)))
+            model.add(Dropout(.2))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'light_cnn_sigmoid':
             model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
             model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
@@ -306,42 +313,36 @@ class CNN(ASRModel):
             model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
                             kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
                             bias_regularizer=regularizers.l2(1e-3),
-                            activity_regularizer=regularizers.l2(1e-3)
-                             ))
+                            activity_regularizer=regularizers.l2(1e-3)))
             model.add(MaxPool2D((2, 2)))
             model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu,
                             kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
                             bias_regularizer=regularizers.l2(1e-3),
-                            activity_regularizer=regularizers.l2(1e-3)
-                             ))
+                            activity_regularizer=regularizers.l2(1e-3)))
             model.add(MaxPool2D((2, 2)))
             model.add(Flatten())
             model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid,
                             kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
                             bias_regularizer=regularizers.l2(1e-3),
-                            activity_regularizer=regularizers.l2(1e-3)
-                            ))
+                            activity_regularizer=regularizers.l2(1e-3)))
             model.add(Dropout(.2))
             model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'mp_drop_reg10-5':
             model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
                             kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
                             bias_regularizer=regularizers.l2(1e-5),
-                            activity_regularizer=regularizers.l2(1e-5)
-                             ))
+                            activity_regularizer=regularizers.l2(1e-5)))
             model.add(MaxPool2D((2, 2)))
             model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu,
                             kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
                             bias_regularizer=regularizers.l2(1e-5),
-                            activity_regularizer=regularizers.l2(1e-5)
-                             ))
+                            activity_regularizer=regularizers.l2(1e-5)))
             model.add(MaxPool2D((2, 2)))
             model.add(Flatten())
             model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid,
                             kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
                             bias_regularizer=regularizers.l2(1e-5),
-                            activity_regularizer=regularizers.l2(1e-5)
-                            ))
+                            activity_regularizer=regularizers.l2(1e-5)))
             model.add(Dropout(.2))
             model.add(Dense(len(self.wanted_words), activation=softmax))
 
