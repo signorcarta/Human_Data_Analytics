@@ -10,7 +10,7 @@ import time
 from os.path import isfile, isdir, join, dirname
 from tensorflow.keras.activations import softmax, relu, sigmoid
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Conv2D, Flatten, Dense, Dropout, MaxPool2D
+from tensorflow.keras.layers import Conv2D, Flatten, Dense, Dropout, MaxPool2D, MaxPooling2D
 from tensorflow.keras import regularizers
 from python_speech_features import *
 from scipy.io import wavfile
@@ -295,6 +295,13 @@ class CNN(ASRModel):
             model.add(MaxPool2D((2, 2)))
             model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
             model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mpooling':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(MaxPooling2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(MaxPooling2D((2, 2)))
             model.add(Flatten())
             model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'mp_drop':
