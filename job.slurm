@@ -2,7 +2,7 @@
 
 #SBATCH --ntasks 1
 #SBATCH --partition allgroups
-#SBATCH --time 05:00:00
+#SBATCH --time 10:00:00
 #SBATCH --mem 10G
 
 #SBATCH --job-name test

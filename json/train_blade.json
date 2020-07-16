@@ -1,8 +1,9 @@
 {
   "model_type": "CNN",
+  "machine": "blade",
 
-  "set_model_name": "debug",
-
+  "set_model_name": "mp",
+  "structure_id": "mp",
 
   "winlen": 0.025,
   "winstep": 0.01,
@@ -12,16 +13,19 @@
   "preemph": 0.97,
 
   "trainset_id": "Project_1",
-  "wanted_words": ["backward", "follow", "right", "two", "bed", "forward", "marvin", "seven", "up", "bird", "four", "nine", "sheila", "cat", "go", "no", "six", "visual", "dog", "happy", "off", "stop", "wow", "down", "house", "on", "eight", "learn", "one", "three", "zero", "_unknown_"],
-  "structure_id": "light_cnn",
-  "filters": [64, 32],
+  "wanted_words": ["backward", "follow", "five", "right", "two", "bed", "forward",
+                    "marvin", "seven", "up", "bird", "four", "nine", "sheila",
+                    "cat", "go", "no", "six", "visual", "dog", "happy", "off",
+                    "stop", "wow", "down", "house", "on", "eight", "learn",
+                    "one", "three", "zero", "yes", "tree"],
+  "filters": [32, 32],
   "kernel_size": [3, 3],
 
   "optimizer": "SGD",
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 
-  "epochs": 2,
+  "epochs": 5,
   "t_batch_size": 2500,
 
   "v_batch_size": 2500,
@@ -29,7 +33,7 @@
 
   "test_batch_size": 2500,
   "test_percentage": 2.5,
-  "unknown_percentage": 10.0,
+  "unknown_percentage": 3.0,
 
   "testset_id": "Project_1"
 }

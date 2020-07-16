@@ -148,7 +148,7 @@ class CNN(ASRModel):
             # TODO: evaluate balanced vs non balanced results
             g_train = dataset_utils.dataset_generator(x_train, y_train, self.info, self.wanted_words,
                                                       batch_size=self.t_batch_size, tot_size=-1,
-                                                      unknown_percentage=self.unknown_percentage, balanced=True)
+                                                      unknown_percentage=self.unknown_percentage)
             g_val = dataset_utils.dataset_generator(x_val, y_val, self.info, self.wanted_words,
                                                     batch_size=self.v_batch_size, tot_size=-1,
                                                     unknown_percentage=self.unknown_percentage)
@@ -257,13 +257,8 @@ class CNN(ASRModel):
             model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'light_cnn_reg':
             model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
-                            kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
-                            bias_regularizer=regularizers.l2(1e-3),
-                            activity_regularizer=regularizers.l2(1e-3)))
-            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu,
-                            kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
-                            bias_regularizer=regularizers.l2(1e-3),
-                            activity_regularizer=regularizers.l2(1e-3)))
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
             model.add(Flatten())
             model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'light_cnn_sigmoid':
@@ -273,12 +268,9 @@ class CNN(ASRModel):
             model.add(Dense(len(self.wanted_words), activation=sigmoid))
         elif self.structure_id == 'dd':
             model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
-            model.add(MaxPool2D((2, 2)))
             model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
-            model.add(MaxPool2D((2, 2)))
             model.add(Flatten())
-            model.add(Dense(len(self.wanted_words)*1.5, activation=softmax))
-            model.add(Dropout(.8))
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=softmax))
             model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'mp':
             model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
@@ -294,7 +286,17 @@ class CNN(ASRModel):
             model.add(MaxPool2D((2, 2)))
             model.add(Flatten())
             model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid))
-            model.add(Dropout(.8))
+            model.add(Dropout(.2))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp_drop_reg2':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5)))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid))
+            model.add(Dropout(.2))
             model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'mp_drop_reg':
             model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
@@ -315,7 +317,28 @@ class CNN(ASRModel):
                             bias_regularizer=regularizers.l2(1e-3),
                             activity_regularizer=regularizers.l2(1e-3)
                             ))
-            model.add(Dropout(.8))
+            model.add(Dropout(.2))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp_drop_reg10-5':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
+                            bias_regularizer=regularizers.l2(1e-5),
+                            activity_regularizer=regularizers.l2(1e-5)
+                             ))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
+                            bias_regularizer=regularizers.l2(1e-5),
+                            activity_regularizer=regularizers.l2(1e-5)
+                             ))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
+                            bias_regularizer=regularizers.l2(1e-5),
+                            activity_regularizer=regularizers.l2(1e-5)
+                            ))
+            model.add(Dropout(.2))
             model.add(Dense(len(self.wanted_words), activation=softmax))
 
         my_optimizer = keras.optimizers.SGD(learning_rate=0.01) if self.optimizer == "" else self.optimizer
@@ -335,11 +358,14 @@ class CNN(ASRModel):
             shutil.rmtree(tensorboard_dir)
         os.makedirs(tensorboard_dir)
 
-        my_callbacks = [keras.callbacks.TensorBoard(log_dir=tensorboard_dir),
-                        keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=3, verbose=0,
+        my_callbacks = [keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=3, verbose=0,
                                                           mode="auto", min_delta=5e-3, cooldown=1, min_lr=1e-4),
                         keras.callbacks.TerminateOnNaN(),
                         keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=3, verbose=1, mode="auto")]
+
+        if self.machine != 'blade':
+            my_callbacks.append(keras.callbacks.TensorBoard(log_dir=tensorboard_dir))
+
         print("CNN train")
         xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
         init = time.time()
