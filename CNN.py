@@ -43,6 +43,8 @@ class CNN(ASRModel):
         # output initialization
         self.out_param = {}
         self.wanted_words = []
+        self.preproces_tot_time = 0.0
+
 
         # Load or create model, wanted_words and info
         if isfile(model_path) or isfile(join(model_path, MODEL_NAME)):      # load existing model
@@ -87,7 +89,6 @@ class CNN(ASRModel):
 
             self.model = self.build_model(input_shape=(99, input_param["numcep"], 1))
 
-            self.preproces_tot_time = 0.0
 
         # preprocess param
         self.numcep = input_param["numcep"]  #: 13
