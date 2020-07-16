@@ -89,7 +89,7 @@ def train(params: Dict):
     if "set_model_name" in params:  # specify a string to identify the model
         model_id = get_new_model_id(params["set_model_name"])
     else:
-        model_id = get_new_model_id(params["model_type"])
+        model_id = get_new_model_id(params["structure_id"])
 
     if params["model_type"] == "CNN":
         asrmodel = CNN(join(MODEL_PATH, model_id), input_param=params)
