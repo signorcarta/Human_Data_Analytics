@@ -150,12 +150,7 @@ def real_time_asr(params: Dict):
     assert "model_id" in params
 
 
-def main(action, json, multi_test=None, set_model_name=None):
-    # check and load input parameters
-    assert os.path.exists(json), "invalid path for parameters {}".format(json)
-    assert json.endswith(".json"), "--json file format not supported: {}".format(json.split(".")[-1])
-    params = load_json(json)  # a dictionary with all the parameter to train, test or rtasr
-    multi_params = load_json(multi_test) if multi_test is not None else None
+def main(action, params, multi_test=None, set_model_name=None):
 
     params.update({"machine": MACHINE})
 
@@ -180,15 +175,21 @@ def main(action, json, multi_test=None, set_model_name=None):
     if not os.path.exists(RES_PATH):
         os.makedirs(RES_PATH)
 
-    # train, test and/or real time ASR ?
-    if "train" in action:
-        params["model_id"] = train(params)  # set the model_id to eventually test or rtasr the trained model
-    if "test" in action:
-        test(params)
-    if "rtasr" in action:  # real time ASR
-        real_time_asr(params)
-
-    pass
+    if multi_test is not None:
+        multi_params = load_json(multi_test)
+        for k in multi_params:
+            for v in multi_params[k]:
+                c_params = params.copy()
+                c_params.update({k: v})
+                main(action, c_params)
+    else:
+        # train, test and/or real time ASR ?
+        if "train" in action:
+            params["model_id"] = train(params)  # set the model_id to eventually test or rtasr the trained model
+        if "test" in action:
+            test(params)
+        if "rtasr" in action:  # real time ASR
+            real_time_asr(params)
 
 
 if __name__ == "__main__":
@@ -206,6 +207,11 @@ if __name__ == "__main__":
 
     print(str(args))
 
-    main(args.action, args.json, multi_test=args.multitest)
+    # check and load input parameters
+    assert os.path.exists(args.json), "invalid path for parameters {}".format(args.json)
+    assert args.json.endswith(".json"), "--json file format not supported: {}".format(args.json.split(".")[-1])
+    params = load_json(args.json)  # a dictionary with all the parameter to train, test or rtasr
+
+    main(args.action, params, multi_test=args.multitest)
 
     print("Exit correctly")

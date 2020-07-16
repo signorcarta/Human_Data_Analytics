@@ -87,6 +87,8 @@ class CNN(ASRModel):
 
             self.model = self.build_model(input_shape=(99, input_param["numcep"], 1))
 
+            self.preproces_tot_time = 0.0
+
         # preprocess param
         self.numcep = input_param["numcep"]  #: 13
         self.winlen = input_param["winlen"]  #: 0.025,
@@ -119,9 +121,11 @@ class CNN(ASRModel):
     def load_dataset(self, trainset, partitions=('train', 'validation')):
 
         if isdir(trainset):
+            init = time.time()
             x_train, y_train, x_val, y_val, x_test, y_test, info = \
                 dataset_utils.load_dataset(trainset, val_percentage=self.val_percentage,
                                            test_percentage=self.test_percentage)
+            self.load_dataset_time = time.time() - init
 
             if self.machine == "blade":
                 max_batch_size = 10000
@@ -145,7 +149,6 @@ class CNN(ASRModel):
                 if len(x_val) % self.v_batch_size != 0 \
                 else int(len(x_val) / self.v_batch_size) - 1
 
-            # TODO: evaluate balanced vs non balanced results
             g_train = dataset_utils.dataset_generator(x_train, y_train, self.info, self.wanted_words,
                                                       batch_size=self.t_batch_size, tot_size=-1,
                                                       unknown_percentage=self.unknown_percentage)
@@ -231,14 +234,15 @@ class CNN(ASRModel):
         else:
             raise TypeError("Input audio can't be preprocessed, unsupported type: " + str(type(audio)))
 
-    @staticmethod
-    def batch_preprocessing_gen(mnist_val, k_list, ww_size):
+    def batch_preprocessing_gen(self, mnist_val, k_list, ww_size):
         for sample in mnist_val:
             batch = sample[k_list[0]]
             labels = sample[k_list[1]]
+            init = time.time()
             preprocessed_batch = np.array([CNN.preprocess(data) for data in batch])
             preprocessed_label = np.array(
                 [np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1))) for l in labels])
+            self.preproces_tot_time += time.time() - init
             # print(preprocessed_label)
             yield preprocessed_batch, preprocessed_label
 
@@ -446,7 +450,9 @@ class CNN(ASRModel):
                     "test_percentage": self.test_percentage,
                     "unknown_percentage": self.unknown_percentage,
 
-                    "training_time": self.training_time
+                    "training_time": self.training_time,
+                    "load_dataset_time": self.load_dataset_time,
+                    "preproces_tot_time": self.preproces_tot_time,
                     }
         with open(join(self.model_path, INFO_NAME), 'w') as info_file:
             json.dump(cnn_data, info_file, indent=2, sort_keys=True)
