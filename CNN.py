@@ -87,7 +87,8 @@ class CNN(ASRModel):
                 self.wanted_words.append(dataset_utils.UNKNOWN)
             self.wanted_words.sort()
 
-            self.model = self.build_model(input_shape=(int(((1.00000001-input_param["winlen"])/input_param["winstep"])+1.0), input_param["numcep"], 1))
+            input_shape = (int(((1.0-input_param["winlen"])/input_param["winstep"])+2.000001), input_param["numcep"], 1)
+            self.model = self.build_model(input_shape=input_shape)
 
 
         # preprocess param
@@ -231,7 +232,7 @@ class CNN(ASRModel):
             #             highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
             # data = np.abs(data)
             # data = data / np.max(data)
-            return data.reshape((int(data.size/numcep), numcep, 1))
+            return data.reshape((len(data), len(data[0]), 1))
         else:
             raise TypeError("Input audio can't be preprocessed, unsupported type: " + str(type(audio)))
 
@@ -396,7 +397,7 @@ class CNN(ASRModel):
         xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
         init = time.time()
         self.model.fit(x=xy_train, epochs=self.epochs, verbose=2, steps_per_epoch=self.steps_per_epoch,
-                       validation_steps=self.validation_steps, callbacks=my_callbacks[:2],  # TODO: activate callback
+                       validation_steps=self.validation_steps, callbacks=my_callbacks[:3],  # TODO: activate callback
                        validation_data=xy_val, use_multiprocessing=False)
         self.training_time = time.time() - init
 
