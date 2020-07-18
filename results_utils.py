@@ -55,5 +55,9 @@ def single_model_results(model_id, save=False):
 if __name__ == "__main__":
     if sys.argv[1] in ("True", "False"):
         all_models_results(save=sys.argv[1])
-    elif sys.argv[1] in os.listdir(main.MODEL_PATH):
-        single_model_results(sys.argv[1])
+    else:
+        for test in os.listdir(main.TEST_PATH):
+            if sys.argv[1] in test:
+                single_model_results(sys.argv[1])
+        print("")
+
