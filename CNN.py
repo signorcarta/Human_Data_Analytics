@@ -87,7 +87,7 @@ class CNN(ASRModel):
                 self.wanted_words.append(dataset_utils.UNKNOWN)
             self.wanted_words.sort()
 
-            self.model = self.build_model(input_shape=(99, input_param["numcep"], 1))
+            self.model = self.build_model(input_shape=(int(((1.00000001-input_param["winlen"])/input_param["winstep"])+1.0), input_param["numcep"], 1))
 
 
         # preprocess param
@@ -223,7 +223,7 @@ class CNN(ASRModel):
         elif isinstance(audio, np.ndarray):
             data = np.array(audio, dtype=float)
             data /= np.max(np.abs(data))
-            data = mfcc(data, 16000, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
+            data = mfcc(data, 16000, winlen=winlen, numcep=numcep, winstep=winstep, nfilt=nfilt, nfft=nfft, lowfreq=lowfreq,
                         highfreq=highfreq, preemph=preemph, winfunc=lambda x: np.ones((x,)))
             # TODO: evaluate alternatives
             # return data.reshape((99, 13, 1))
@@ -240,7 +240,7 @@ class CNN(ASRModel):
             batch = sample[k_list[0]]
             labels = sample[k_list[1]]
             init = time.time()
-            preprocessed_batch = np.array([CNN.preprocess(data) for data in batch])
+            preprocessed_batch = np.array([CNN.preprocess(data, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep) for data in batch])
             preprocessed_label = np.array(
                 [np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1))) for l in labels])
             self.preproces_tot_time += time.time() - init
@@ -283,6 +283,12 @@ class CNN(ASRModel):
             model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
             model.add(Flatten())
             model.add(Dense(int(len(self.wanted_words)*1.5), activation=softmax))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'dd_relu':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=relu))
             model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'dd_drop':
             model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
