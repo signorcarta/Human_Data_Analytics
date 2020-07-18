@@ -6,12 +6,14 @@ import tensorflow.keras as keras
 import dataset_utils
 import pickle
 import json
+import time
 
 
 from os.path import isfile, isdir, join, dirname
-from tensorflow.keras.activations import softmax, relu
+from tensorflow.keras.activations import softmax, relu, sigmoid
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Conv2D, Flatten, Dense
+from tensorflow.keras.layers import Conv2D, Flatten, Dense, Dropout, MaxPool2D, MaxPooling2D
+from tensorflow.keras import regularizers
 from python_speech_features import *
 from scipy.io import wavfile
 from ASRModel import ASRModel
@@ -21,9 +23,6 @@ from matplotlib import mlab
 MODEL_NAME = 'model.h5'
 INFO_NAME = 'param.json'
 
-
-# TODO: confusion matrix
-# analyze result
 
 def gen_sample(data, k):
     for v in data:
@@ -47,10 +46,19 @@ class CNN(ASRModel):
         # output initialization
         self.out_param = {}
         self.wanted_words = []
+        self.preproces_tot_time = 0.0
+
 
         # Load or create model, wanted_words and info
         if isfile(model_path) or isfile(join(model_path, MODEL_NAME)):      # load existing model
             input_param.update(CNN.load_data(join(model_path, INFO_NAME)))
+
+            self.wanted_words = input_param["wanted_words"]
+
+            # param to build model
+            self.structure_id = input_param["structure_id"]  #: "light_cnn",
+            self.filters = input_param["filters"]  #: [64, 32],
+            self.kernel_size = input_param["kernel_size"]  #: [3, 3],
 
             # compile model, needed to load it
             self.optimizer = input_param["optimizer"]  # 'adam'
@@ -59,23 +67,31 @@ class CNN(ASRModel):
 
             self.model = self.load_model(model_path)
             self.info = input_param["info"]
+            self.training_time = input_param["training_time"]
         elif isdir(model_path):                                             # create new model
             self.info = {}
 
-            self.model = CNN.build_model(len(input_param["wanted_words"]), input_shape=input_param["input_shape"])  # input_shape=(99, input_param["numcep"], 1))
+            # param to build model
+            self.structure_id = input_param["structure_id"]  #: "light_cnn",
+            self.filters = input_param["filters"]  #: [64, 32],
+            self.kernel_size = input_param["kernel_size"]  #: [3, 3],
 
             # compile model
             self.optimizer = input_param["optimizer"]  # 'adam'
             self.loss = input_param["loss"]  # 'categorical_crossentropy'
             self.metrics = input_param["metrics"]  # ('accuracy')
 
+            self.wanted_words = input_param["wanted_words"]
+            self.wanted_words.sort()
+
             # add UNKNOWN label to the dataset if not present
             # TODO: talk about unknown in the report
             if dataset_utils.UNKNOWN not in input_param["wanted_words"]:
                 self.wanted_words.append(dataset_utils.UNKNOWN)
+            self.wanted_words.sort()
 
-        self.wanted_words = input_param["wanted_words"]
-        self.wanted_words.sort()
+            self.model = self.build_model(input_shape=(int(((1.00000001-input_param["winlen"])/input_param["winstep"])+1.0), input_param["numcep"], 1))
+
 
         # preprocess param
         self.numcep = input_param["numcep"]  #: 13
@@ -85,11 +101,6 @@ class CNN(ASRModel):
         self.nfft = input_param["nfft"]  #: 512,
         self.preemph = input_param["preemph"]  #: 0.97,
         self.input_shape = input_param["input_shape"]
-
-        # param to build model
-        self.structure_id = input_param["structure_id"]  #: "light_cnn",
-        self.filters = input_param["filters"]  #: [64, 32],
-        self.kernel_size = input_param["kernel_size"]  #: [3, 3],
 
         # input dataset of the model
         self.trainset_id = input_param["trainset_id"]
@@ -112,17 +123,17 @@ class CNN(ASRModel):
 
         self.unknown_percentage = input_param["unknown_percentage"]  # 10.
 
-        # test
-
     def load_dataset(self, trainset, partitions=('train', 'validation')):
 
         if isdir(trainset):
+            init = time.time()
             x_train, y_train, x_val, y_val, x_test, y_test, info = \
                 dataset_utils.load_dataset(trainset, val_percentage=self.val_percentage,
                                            test_percentage=self.test_percentage)
+            self.load_dataset_time = time.time() - init
 
             if self.machine == "blade":
-                max_batch_size = 2500
+                max_batch_size = 10000
             else:
                 max_batch_size = 2500
 
@@ -381,31 +392,137 @@ class CNN(ASRModel):
         for sample in mnist_val:
             batch = sample[k_list[0]]
             labels = sample[k_list[1]]
-            preprocessed_batch = np.array([CNN.preprocess(data, winlen=0.025, numcep=13, winstep=0.01, nfilt=26, nfft=512,
-                                                          lowfreq=0, highfreq=None, preemph=0.97, type='specgram')
-                                           for data in batch])
+            init = time.time()
+            preprocessed_batch = np.array([CNN.preprocess(data, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep) for data in batch])
             preprocessed_label = np.array(
                 [np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1))) for l in labels])
+            self.preproces_tot_time += time.time() - init
             # print(preprocessed_label)
             yield preprocessed_batch, preprocessed_label
 
-    @staticmethod
-    def build_model(output_shape, input_shape=(99, 13, 1)):
+    def build_model(self, input_shape=(99, 13, 1)):
         """
         Create the model structure with the parameters specified
         :return:
         """
         print("CNN build_model")
-        # add layers [! input shape must be (28,28,1) !]
-        model = Sequential()
-        model.add(Conv2D(64, kernel_size=3, activation=relu, input_shape=input_shape))
-        model.add(Conv2D(32, kernel_size=3, activation=relu))
-        model.add(Flatten())
-        model.add(Dense(output_shape, activation=softmax))  # 11 nodes at output layer (can be changed)
 
-        model.compile(loss=keras.losses.categorical_crossentropy,
-                      optimizer=keras.optimizers.SGD(lr=0.01),
-                      metrics=['accuracy'])
+        model = Sequential()
+        if self.structure_id == 'light_cnn':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'light_cnn_reg':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'light_cnn_reg_drop':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5)))
+            model.add(Dropout(.1))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'light_cnn_sigmoid':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=sigmoid))
+        elif self.structure_id == 'dd':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=softmax))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'dd_relu':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=relu))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'dd_drop':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=softmax))
+            model.add(Dropout(.1))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mpooling':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(MaxPooling2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(MaxPooling2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp_drop':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid))
+            model.add(Dropout(.2))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp_drop_reg2':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5)))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid))
+            model.add(Dropout(.2))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp_drop_reg':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
+                            bias_regularizer=regularizers.l2(1e-3),
+                            activity_regularizer=regularizers.l2(1e-3)))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
+                            bias_regularizer=regularizers.l2(1e-3),
+                            activity_regularizer=regularizers.l2(1e-3)))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-3, l2=1e-3),
+                            bias_regularizer=regularizers.l2(1e-3),
+                            activity_regularizer=regularizers.l2(1e-3)))
+            model.add(Dropout(.2))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+        elif self.structure_id == 'mp_drop_reg10-5':
+            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
+                            bias_regularizer=regularizers.l2(1e-5),
+                            activity_regularizer=regularizers.l2(1e-5)))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
+                            bias_regularizer=regularizers.l2(1e-5),
+                            activity_regularizer=regularizers.l2(1e-5)))
+            model.add(MaxPool2D((2, 2)))
+            model.add(Flatten())
+            model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid,
+                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
+                            bias_regularizer=regularizers.l2(1e-5),
+                            activity_regularizer=regularizers.l2(1e-5)))
+            model.add(Dropout(.2))
+            model.add(Dense(len(self.wanted_words), activation=softmax))
+
+        my_optimizer = keras.optimizers.SGD(learning_rate=0.01) if self.optimizer == "" else self.optimizer
+        self.optimizer = my_optimizer
+        model.compile(loss=self.loss, optimizer=my_optimizer, metrics=self.metrics)
 
         return model
 
@@ -414,21 +531,27 @@ class CNN(ASRModel):
         Train the builded model in the input dataset specified in the
         :return: the id of the builded model, useful to get the .h5 file
         """
-        # clean logs dir
-        if isdir("logs"):
-            shutil.rmtree("logs")
-        os.makedirs("logs")
+        # prepare logs dir for tensorboard
+        tensorboard_dir = join("logs", self.model_id)
+        if isdir(tensorboard_dir):
+            shutil.rmtree(tensorboard_dir)
+        os.makedirs(tensorboard_dir)
 
-        my_callbacks = [keras.callbacks.TensorBoard(log_dir="logs"),
-                        keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.2, patience=3, verbose=0,
-                                                          mode="auto", min_delta=1e-4, cooldown=1, min_lr=1e-4),
+        my_callbacks = [keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=3, verbose=1,
+                                                          mode="auto", min_delta=5e-3, cooldown=1, min_lr=1e-4),
                         keras.callbacks.TerminateOnNaN(),
-                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-4, patience=2, verbose=1, mode="auto")]
+                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=3, verbose=1, mode="auto")]
+
+        if self.machine != 'blade':
+            my_callbacks.append(keras.callbacks.TensorBoard(log_dir=tensorboard_dir))
+
         print("CNN train")
         xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
+        init = time.time()
         self.model.fit(x=xy_train, epochs=self.epochs, verbose=2, steps_per_epoch=self.steps_per_epoch,
-                       validation_steps=self.validation_steps, callbacks=my_callbacks[:],
+                       validation_steps=self.validation_steps, callbacks=my_callbacks[:2],  # TODO: activate callback
                        validation_data=xy_val, use_multiprocessing=False)
+        self.training_time = time.time() - init
 
     @staticmethod
     def get_id_from_path(model_path: str):
@@ -454,7 +577,6 @@ class CNN(ASRModel):
         else:
             raise ModelPathError("Invalid model path: {}".format(model_path))
 
-        model.compile(optimizer=self.optimizer, loss=self.loss, metrics=self.metrics)
         return model
 
     def save_model(self):
@@ -501,8 +623,11 @@ class CNN(ASRModel):
                     "test_batch_size": self.test_batch_size,
                     "test_steps": self.test_steps,
                     "test_percentage": self.test_percentage,
-                    "unknown_percentage": self.unknown_percentage
+                    "unknown_percentage": self.unknown_percentage,
 
+                    "training_time": self.training_time,
+                    "load_dataset_time": self.load_dataset_time,
+                    "preproces_tot_time": self.preproces_tot_time,
                     }
         with open(join(self.model_path, INFO_NAME), 'w') as info_file:
             json.dump(cnn_data, info_file, indent=2, sort_keys=True)
@@ -525,7 +650,8 @@ class CNN(ASRModel):
         labels, y_pred = np.array([], dtype=np.int64), np.array([], dtype=np.int64)
         for xy_ in xy_test:
             labels = np.concatenate((np.argmax(xy_[1], axis=1), labels))
-            y_pred = np.concatenate((np.argmax(self.model.predict(xy_[0]), axis=1), y_pred))
+            prediction = self.model.predict(xy_[0])
+            y_pred = np.concatenate((np.argmax(prediction, axis=1), y_pred))
             steps += 1
             if steps >= self.test_steps:
                 break
@@ -548,14 +674,12 @@ class CNN(ASRModel):
                     cr[self.wanted_words[i]]["fn"] += cm[i][j]
                     cr[self.wanted_words[j]]["fp"] += cm[i][j]
 
-        # precision and recall for each wanted_word
+        # support, precision and recall for each wanted_word
         for ww in self.wanted_words:
             precision = cr[ww]["tp"] / (cr[ww]["tp"] + cr[ww]["fp"]) if cr[ww]["tp"] + cr[ww]["fp"] != 0 else 0.0
             support = cr[ww]["tp"] + cr[ww]["fn"]
             recall = cr[ww]["tp"] / support if support != 0 else 0.0
-            cr[ww].update({"precision": precision,
-                           "recall": recall,
-                           "support": support})
+            cr[ww].update({"precision": precision, "recall": recall, "support": support})
 
         # accuracy
         accuracy = true_positive / tot_sample if tot_sample != 0 else 0.0

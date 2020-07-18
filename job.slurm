@@ -3,7 +3,7 @@
 #SBATCH --ntasks 1
 #SBATCH --partition allgroups
 #SBATCH --time 10:00:00
-#SBATCH --mem 30G
+#SBATCH --mem 10G
 
 #SBATCH --job-name test
 #SBATCH --output out/output_%j.txt
