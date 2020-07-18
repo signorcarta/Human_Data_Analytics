@@ -49,7 +49,10 @@ def single_model_results(model_id, save=False):
     param, res = load_model_res_and_data(model_id)
     if res != [] and param != {}:
         for r in res:
-            cm_plot(r["confusion_matrix"], param["wanted_words"], r["test_id"], save=save)
+            if "confusion_matrix" in r and "wanted_words" in param and "test_id" in r:
+                cm_plot(r["confusion_matrix"], param["wanted_words"], r["test_id"], save=save)
+            else:
+                print("model {} has no confusion matrix or wanted world.".format(model_id))
 
 
 if __name__ == "__main__":
