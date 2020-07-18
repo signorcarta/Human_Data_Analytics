@@ -3,6 +3,8 @@
 \section{Results}
 \label{sec:results}
 
+\noindent Regardless of the deployed architecture, we noticed that normalizing our data after the training process gets stuck at a very low accuracy. The model seems to predict always a very small subset of labels regardless of the input data. The reason why this happens is because such normalization discards some important information that is instead necessary to best represent the input audio signal.
+
 \subsection{\textbf{CNN}}
 The first tested model's results are provided in Table \ref{table:cnn_performances}:\\
 \begin{table}[h!]
