@@ -388,7 +388,7 @@ class CNN(ASRModel):
         my_callbacks = [keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=3, verbose=1,
                                                           mode="auto", min_delta=5e-3, cooldown=1, min_lr=1e-4),
                         keras.callbacks.TerminateOnNaN(),
-                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=3, verbose=1, mode="auto")]
+                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=6, verbose=1, mode="auto")]
 
         if self.machine != 'blade':
             my_callbacks.append(keras.callbacks.TensorBoard(log_dir=tensorboard_dir))
