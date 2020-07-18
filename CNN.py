@@ -90,7 +90,12 @@ class CNN(ASRModel):
                 self.wanted_words.append(dataset_utils.UNKNOWN)
             self.wanted_words.sort()
 
-            self.model = self.build_model(input_shape=(int(((1.00000001-input_param["winlen"])/input_param["winstep"])+1.0), input_param["numcep"], 1))
+            if input_param["preprocess_type"] == "mfcc":
+                input_shape = int(((1.0-input_param["winlen"])/input_param["winstep"])+2.000001), input_param["numcep"], 1
+            elif input_param["preprocess_type"] == "specgram":
+                input_shape = input_param["input_shape"]
+
+            self.model = self.build_model(input_shape=input_shape)
 
 
         # preprocess param
@@ -101,6 +106,7 @@ class CNN(ASRModel):
         self.nfft = input_param["nfft"]  #: 512,
         self.preemph = input_param["preemph"]  #: 0.97,
         self.input_shape = input_param["input_shape"]
+        self.preprocess_type = input_param["preprocess_type"]
 
         # input dataset of the model
         self.trainset_id = input_param["trainset_id"]
@@ -393,7 +399,7 @@ class CNN(ASRModel):
             batch = sample[k_list[0]]
             labels = sample[k_list[1]]
             init = time.time()
-            preprocessed_batch = np.array([CNN.preprocess(data, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep) for data in batch])
+            preprocessed_batch = np.array([CNN.preprocess(data, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep, type=self.preprocess_type) for data in batch])
             preprocessed_label = np.array(
                 [np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1))) for l in labels])
             self.preproces_tot_time += time.time() - init
