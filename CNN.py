@@ -383,15 +383,15 @@ class CNN(ASRModel):
             Z = spec
         elif scale == 'dB':
             if mode is None or mode == 'default' or mode == 'psd':
-                Z = 10. * np.log10(spec)
+                Z = 10. * np.log10(spec + 1e-10)
             else:
-                Z = 20. * np.log10(spec)
+                Z = 20. * np.log10(spec + 1e-10)
         else:
             raise ValueError('Unknown scale %s', scale)
 
         Z = np.flipud(Z)
         #Z = np.abs(Z)
-        Z = (Z - np.min(Z))/(np.max(Z) - np.min(Z))
+        Z = 2*(Z - np.min(Z))/(np.max(Z) - np.min(Z)) - 1
         return Z, freqs
 
     def batch_preprocessing_gen(self, mnist_val, k_list, ww_size):
