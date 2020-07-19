@@ -248,7 +248,7 @@ class CNN(ASRModel):
                 return data.reshape((len(data), len(data[0]), 1))
             elif isinstance(audio, np.ndarray):
                 data = np.array(audio, dtype=float)
-                data /= np.max(np.abs(data))
+                #data /= np.max(np.abs(data))
                 data, freq = CNN.specgram(data, Fs=16000)
                 return data.reshape((len(data), len(data[0]), 1))
             else:
@@ -390,8 +390,8 @@ class CNN(ASRModel):
             raise ValueError('Unknown scale %s', scale)
 
         Z = np.flipud(Z)
-        Z = np.abs(Z)
-        Z = 1 - Z / np.max(Z)
+        #Z = np.abs(Z)
+        Z = (Z - np.min(Z))/(np.max(Z) - np.min(Z))
         return Z, freqs
 
     def batch_preprocessing_gen(self, mnist_val, k_list, ww_size):
