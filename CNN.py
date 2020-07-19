@@ -555,7 +555,7 @@ class CNN(ASRModel):
         xy_train, xy_val = self.load_dataset(trainset, partitions=('train', 'validation'))
         init = time.time()
         self.model.fit(x=xy_train, epochs=self.epochs, verbose=2, steps_per_epoch=self.steps_per_epoch,
-                       validation_steps=self.validation_steps, callbacks=my_callbacks[:2],  # TODO: activate callback
+                       validation_steps=self.validation_steps, callbacks=my_callbacks[:],  # TODO: activate callback
                        validation_data=xy_val, use_multiprocessing=False)
         self.training_time = time.time() - init
 
