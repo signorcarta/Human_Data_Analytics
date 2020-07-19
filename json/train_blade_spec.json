@@ -1,7 +1,6 @@
 {
   "model_type": "CNN",
 
-  "set_model_name": "spec",
   "structure_id": "light_cnn",
   "preprocess_type": "specgram",
 
