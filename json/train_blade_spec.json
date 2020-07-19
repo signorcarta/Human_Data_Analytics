@@ -2,6 +2,8 @@
   "model_type": "CNN",
 
   "set_model_name": "spec",
+  "structure_id": "light_cnn",
+  "preprocess_type": "specgram",
 
 
   "winlen": 0.025,
@@ -13,12 +15,15 @@
   "input_shape": [129, 124, 1],
 
   "trainset_id": "Project_1",
-  "wanted_words": ["backward", "follow", "right", "two", "bed", "forward", "marvin", "seven", "up", "bird", "four", "nine", "sheila", "cat", "go", "no", "six", "visual", "dog", "happy", "off", "stop", "wow", "down", "house", "on", "eight", "learn", "one", "three", "zero", "_unknown_"],
-  "structure_id": "light_cnn",
+  "wanted_words": ["backward", "follow", "five", "right", "two", "bed", "forward",
+                    "marvin", "seven", "up", "bird", "four", "nine", "sheila",
+                    "cat", "go", "no", "six", "visual", "dog", "happy", "off",
+                    "stop", "wow", "down", "house", "on", "eight", "learn",
+                    "one", "three", "zero", "yes", "tree"],
   "filters": [64, 32],
   "kernel_size": [3, 3],
 
-  "optimizer": "adam",
+  "optimizer": "SGD",
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 

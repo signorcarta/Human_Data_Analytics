@@ -3,7 +3,7 @@
 #SBATCH --ntasks 1
 #SBATCH --partition allgroups
 #SBATCH --time 10:00:00
-#SBATCH --mem 10G
+#SBATCH --mem 30G
 
 #SBATCH --job-name test
 #SBATCH --output out/output_%j.txt
@@ -22,7 +22,7 @@ conda activate /nfsd/signet/hda_env
 # conda list > environment_conda.txt
 
 # run code
-srun python3 /nfsd/hda/peraliluca/HumanDataAnalitycs/main.py --action train,test --model CNN --json /nfsd/hda/peraliluca/HumanDataAnalitycs/json/train_blade_spec.json
+srun python3 /nfsd/hda/peraliluca/HumanDataAnalitycs/main.py --action train,test --model CNN --json HumanDataAnalitycs/json/train_blade_spec.json --multitest HumanDataAnalitycs/json/multiple_params.json
 
 # deactivate environment at the end of the job
 conda deactivate
