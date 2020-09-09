@@ -197,9 +197,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process input param')
     parser.add_argument('--action', '-a', type=str, help='Which type of action to perform? (train/test/rtasr')
     parser.add_argument('--model', '-m', type=str, help='Model name to load (not the path)')
-    parser.add_argument('--set_model_name', type=str, help='Model name to load (not the path)')
-    parser.add_argument('--trainset', '--train', '-tr', type=str, help='train set name to use (not the path)')
-    parser.add_argument('--testset', '--test', '-te', type=str, help='test set name to use (not the path)')
     parser.add_argument('--json', type=str, help='test set name to use (not the path)')
     parser.add_argument('--multitest', type=str, help='test set name to use (not the path)')
 

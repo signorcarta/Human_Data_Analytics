@@ -25,8 +25,8 @@ def audio_img(audio_path):
 def audio_preprocessed(audio_path):
     numcep = 13
     winstep = 0.01
-    prep = CNN.preprocess(audio_path, numcep=numcep, winstep=winstep)
-    prep = prep.reshape((len(prep), numcep))
+    prep = CNN.preprocess(audio_path, numcep=numcep, winstep=winstep, type='specgram')
+    prep = prep.reshape((len(prep), len(prep[0])))
     fig, ax = plt.subplots()
     ax.matshow(prep)
     plt.show()
@@ -53,6 +53,6 @@ def cm_plot(cm, wanted_words):
 
 if __name__ == "__main__":
     audio_path = "trainset/speech_commands_v0.02/bed/0b7ee1a0_nohash_0.wav"
-    audio_img(audio_path)
+    #audio_img(audio_path)
     audio_preprocessed(audio_path)
-    audio_spectrogram(audio_path)
+    #audio_spectrogram(audio_path)
