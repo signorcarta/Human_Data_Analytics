@@ -5,6 +5,10 @@ import random
 import string
 import shutil
 import platform
+import pyaudio
+import wave
+import numpy as np
+import time
 
 from typing import Dict
 from CNN import CNN
@@ -149,6 +153,84 @@ def real_time_asr(params: Dict):
     """
     assert "model_id" in params
 
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 1
+    RATE = 16000
+    CHUNK = 1024
+    RECORD_SECONDS = 35
+    WAVE_OUTPUT_FILENAME = "file.wav"
+    MIN_ACTIVATION_THRESHOLD = 1024
+
+    # check and load input model
+    model_root = join(MODEL_PATH, params["model_id"])
+    param_json = {}
+    if os.path.exists(join(model_root, "param.json")):
+        param_json = load_json(join(model_root, "param.json"))
+    else:
+        print("param.json not found for model_id {}".format(params["model_id"]))
+
+    asrmodel = None
+    if param_json["model_type"] == "CNN":
+        asrmodel = CNN(model_root, input_param=params)
+    elif param_json["model_type"] == "HMM":
+        asrmodel = HMM(model_root)
+    else:
+        # should never go here
+        raise AssertionError("model_type not recognised: {} check {}".format(param_json["model_type"], SUPPORTED_MODEL))
+
+    # open a stream from microphone
+    audio = pyaudio.PyAudio()
+
+    # start Recording
+    stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+    print("recording...")
+    frames = []
+    np_frames = np.array([], dtype=np.int16)
+
+    conversion_time = 0.0  # time to preprocess and predict the intervals of stream
+    sample_start = 0    # starting index of the sample that will be predicted
+    sample_step = int(RATE/5)     # incrementation of sample_start
+    sample_length = RATE   # the number of value for sample
+
+    for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+        data = stream.read(CHUNK)
+        init = time.time()
+        numpydata = np.frombuffer(data, dtype=np.int16)
+
+        np_frames = np.concatenate((np_frames, numpydata))
+        # print("{}".format(max(numpydata)))
+
+        # preprocessing of 1s if needed
+        if len(np_frames) >= sample_start + sample_length:
+            sample = np_frames[sample_start:sample_start+sample_length]
+            if max(sample) > MIN_ACTIVATION_THRESHOLD:
+                prediction, label = asrmodel.predict(sample)  # model prediction
+            else:
+                label = ""
+            sample_start += sample_step
+            print("\r{}".format(label.upper()), end='')
+
+        conversion_time += time.time() - init
+        frames.append(data)
+    print("finished recording, mean conversion_time: {}".format(conversion_time/int(RATE / CHUNK * RECORD_SECONDS)))
+
+    # stop Recording
+    stream.stop_stream()
+    stream.close()
+    audio.terminate()
+
+    # save the recorded audio
+    waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+    waveFile.setnchannels(CHANNELS)
+    waveFile.setsampwidth(audio.get_sample_size(FORMAT))
+    waveFile.setframerate(RATE)
+    waveFile.writeframes(b''.join(frames))
+    waveFile.close()
+
+
+
+    #   update results
+
 
 def main(action, params, multi_test=None, set_model_name=None):
 
@@ -196,7 +278,7 @@ if __name__ == "__main__":
     # parse input
     parser = argparse.ArgumentParser(description='Process input param')
     parser.add_argument('--action', '-a', type=str, help='Which type of action to perform? (train/test/rtasr')
-    parser.add_argument('--model', '-m', type=str, help='Model name to load (not the path)')
+    parser.add_argument('--model_id', '-m', type=str, help='Model name to load (not the path)')
     parser.add_argument('--json', type=str, help='test set name to use (not the path)')
     parser.add_argument('--multitest', type=str, help='test set name to use (not the path)')
 
@@ -205,10 +287,14 @@ if __name__ == "__main__":
     print(str(args))
 
     # check and load input parameters
-    assert os.path.exists(args.json), "invalid path for parameters {}".format(args.json)
-    assert args.json.endswith(".json"), "--json file format not supported: {}".format(args.json.split(".")[-1])
-    params = load_json(args.json)  # a dictionary with all the parameter to train, test or rtasr
+    params = {}
+    if args.json is not None:
+        assert os.path.exists(args.json), "invalid path for parameters {}".format(args.json)
+        assert args.json.endswith(".json"), "--json file format not supported: {}".format(args.json.split(".")[-1])
+        params = load_json(args.json)  # a dictionary with all the parameter to train, test or rtasr
 
+    if args.model_id is not None:
+        params.update({"model_id": args.model_id})
     main(args.action, params, multi_test=args.multitest)
 
     print("Exit correctly")

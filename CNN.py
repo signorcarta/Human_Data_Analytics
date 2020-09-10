@@ -61,13 +61,13 @@ class CNN(ASRModel):
             self.kernel_size = input_param["kernel_size"]  #: [3, 3],
 
             # compile model, needed to load it
-            self.optimizer = input_param["optimizer"]  # 'adam'
-            self.loss = input_param["loss"]  # 'categorical_crossentropy'
-            self.metrics = input_param["metrics"]  # ('accuracy')
+            self.optimizer = input_param["optimizer"] if "optimizer" in input_param else ""  # 'adam'
+            self.loss = input_param["loss"] if "loss" in input_param else ""    # 'categorical_crossentropy'
+            self.metrics = input_param["metrics"] if "metrics" in input_param else ""  # ('accuracy')
 
             self.model = self.load_model(model_path)
             self.info = input_param["info"]
-            self.training_time = input_param["training_time"]
+            self.training_time = input_param["training_time"] if "training_time" in input_param else ""
         elif isdir(model_path):                                             # create new model
             self.info = {}
 
@@ -105,8 +105,8 @@ class CNN(ASRModel):
         self.nfilt = input_param["nfilt"]  #: 26,
         self.nfft = input_param["nfft"]  #: 512,
         self.preemph = input_param["preemph"]  #: 0.97,
-        self.input_shape = input_param["input_shape"]
-        self.preprocess_type = input_param["preprocess_type"]
+        self.input_shape = input_param["input_shape"] if "input_shape" in input_param else ""
+        self.preprocess_type = input_param["preprocess_type"] if "preprocess_type" in input_param else ""
 
         # input dataset of the model
         self.trainset_id = input_param["trainset_id"]
@@ -613,10 +613,14 @@ class CNN(ASRModel):
                     "nfilt": self.nfilt,  #: 26,
                     "nfft": self.nfft,  #: 512,
                     "preemph": self.preemph,  #: 0.97,
+                    "optimizer": self.optimizer,
+                    "loss": self.loss,
+                    "metrics": self.metrics,
 
                     "structure_id": self.structure_id,  #: "light_cnn",
                     "filters": self.filters,  #: [64, 32],
                     "kernel_size": self.kernel_size,  #: [3, 3],
+                    "input_shape": self.input_shape,
 
                     "epochs": self.epochs,
                     "t_batch_size": self.t_batch_size,
@@ -634,6 +638,7 @@ class CNN(ASRModel):
                     "training_time": self.training_time,
                     "load_dataset_time": self.load_dataset_time,
                     "preproces_tot_time": self.preproces_tot_time,
+                    "preprocess_type": self.preprocess_type,
                     }
         with open(join(self.model_path, INFO_NAME), 'w') as info_file:
             json.dump(cnn_data, info_file, indent=2, sort_keys=True)
@@ -698,3 +703,14 @@ class CNN(ASRModel):
         print("CNN test - {}".format(metrics))
 
         return metrics
+
+
+    def predict(self, sample):
+        if isinstance(sample, np.ndarray):
+            prediction = CNN.preprocess(sample, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep, type='specgram')
+            prediction = self.model.predict(np.array([prediction,]))
+            label = self.wanted_words[np.argmax(prediction)]
+
+        return prediction, label
+
+
