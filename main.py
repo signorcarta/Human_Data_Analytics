@@ -191,6 +191,9 @@ def real_time_asr(params: Dict):
     sample_start = 0    # starting index of the sample that will be predicted
     sample_step = int(RATE/5)     # incrementation of sample_start
     sample_length = RATE   # the number of value for sample
+    prediction_history = ["", "", "", "", ""]
+    ph_index = 0
+    ph_len = len(prediction_history)
 
     for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
         data = stream.read(CHUNK)
@@ -203,16 +206,27 @@ def real_time_asr(params: Dict):
         # preprocessing of 1s if needed
         if len(np_frames) >= sample_start + sample_length:
             sample = np_frames[sample_start:sample_start+sample_length]
+
+            # calculate the prediction only if
             if max(sample) > MIN_ACTIVATION_THRESHOLD:
                 prediction, label = asrmodel.predict(sample)  # model prediction
             else:
                 label = ""
             sample_start += sample_step
-            print("\r{}".format(label.upper()), end='')
+
+            prediction_history[ph_index] = label  # update prediction_history with current prediction
+
+            # print the label iff is found multiple times consequentially
+            if prediction_history[(ph_index-1) % ph_len] == label:
+                print("\r{}".format(label.upper()), end='')
+            else:
+                print("\r{}".format(label.upper()), end='')
+
+            ph_index = (ph_index + 1) % ph_len
 
         conversion_time += time.time() - init
         frames.append(data)
-    print("finished recording, mean conversion_time: {}".format(conversion_time/int(RATE / CHUNK * RECORD_SECONDS)))
+    print("\nfinished recording, mean conversion_time: {}".format(conversion_time/int(RATE / CHUNK * RECORD_SECONDS)))
 
     # stop Recording
     stream.stop_stream()
@@ -229,7 +243,7 @@ def real_time_asr(params: Dict):
 
 
 
-    #   update results
+
 
 
 def main(action, params, multi_test=None, set_model_name=None):

@@ -7,9 +7,10 @@ from os.path import join
 from termcolor import colored
 
 
-def check_acc(min_acc=0.0, max_acc=1.0, n_label=0, structure_id=""):
+def check_acc(min_acc=0.0, max_acc=1.0, n_label=0, structure_id="", optimizer=""):
     model_path = "test"
-    print("{:<30}, {:5}, {:<6}, {:<20}, {:<8}, {:9}, {:6}, {:7}".format("test_id", "acc", "m_type", "structure_id", "machine","train(s)", "epochs", "n_label"))
+    print("{:<30}, {:5}, {:<6}, {:<20}, {:<8}, {:8}, {:7}, {:7}, {:6}, {:7}, {:<5}".format(
+        "test_id", "acc", "m_type", "structure_id", "machine", "train(s)", "prep(s)", "load(s)", "epochs", "n_label", "opt"))
     for res_file in sorted(os.listdir(model_path)):
         res_file_path = join(model_path, res_file)
         if os.path.isfile(res_file_path) and res_file.endswith('.json'):
@@ -67,19 +68,24 @@ def check_acc(min_acc=0.0, max_acc=1.0, n_label=0, structure_id=""):
             m_type = param_json["model_type"] if "model_type" in param_json else " "
             m_machine = param_json["machine"][:6] if "machine" in param_json else " "
             m_train_t = param_json["training_time"] if "training_time" in param_json else -1.0
+            m_preprocess_t = param_json["preproces_tot_time"] if "preproces_tot_time" in param_json else -1.0
+            m_load_data_t = param_json["load_dataset_time"] if "load_dataset_time" in param_json else -1.0
             m_structure_id = param_json["structure_id"] if "structure_id" in param_json else " "
             m_epochs = param_json["epochs"] if "epochs" in param_json else " "
             m_n_labels = len(param_json["wanted_words"]) if "wanted_words" in param_json else " "
+            m_optimizer = param_json["optimizer"] if "optimizer" in param_json else " "
 
             # filter model
             if not (n_label is None or n_label == m_n_labels or n_label <= 0):
                 continue
             if not (structure_id == "" or structure_id == m_structure_id):
                 continue
+            if not (optimizer == "" or optimizer == m_optimizer):
+                continue
 
-            print(colored("{:<30}, {:.3f}, {:<6}, {:<20}, {:<8}, {:8.1f}, {:6}, {:7}"
-                          .format(res_file[:-5], acc, m_type, m_structure_id, m_machine, m_train_t, m_epochs,
-                                  m_n_labels), color))
+            print(colored("{:<30}, {:.3f}, {:<6}, {:<20}, {:<8}, {:8.1f}, {:7.1f}, {:7.1f}, {:6}, {:7}, {:<5}"
+                          .format(res_file[:-5], acc, m_type, m_structure_id, m_machine, m_train_t, m_preprocess_t,
+                                  m_load_data_t, m_epochs, m_n_labels, m_optimizer), color))
 
 
 if __name__ == "__main__":
@@ -90,10 +96,11 @@ if __name__ == "__main__":
     parser.add_argument('--max_acc', type=float, help='The max acc of the model to show')
     parser.add_argument('--n_label', type=int, help='The number of labels of the printed models')
     parser.add_argument('--structure_id', type=str, help='The structure_id of the printed models')
+    parser.add_argument('--optimizer', type=str, help='The optimizer used for the train')
 
     args = parser.parse_args()
 
     print(str(args))
 
     if args.action == "check_acc":
-        check_acc(min_acc=args.min_acc, max_acc=args.max_acc, n_label=args.n_label, structure_id=args.structure_id)
+        check_acc(min_acc=args.min_acc, max_acc=args.max_acc, n_label=args.n_label, structure_id=args.structure_id, optimizer=args.optimizer)
