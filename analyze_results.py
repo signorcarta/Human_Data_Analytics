@@ -6,13 +6,64 @@ from os.path import join
 
 from termcolor import colored
 
+MODEL_PATH = "test"
+DEFAULT_PARAM_LIST = (  # the list of parameter to print
+    "test_id", "m_type", "structure_id", "machine",
+    "winlen", "winstep", "numcep", "nfilt",
+    "n_label", "epochs",
+    "train(s)", "prep(s)", "load(s)",
+    "opt", "acc"
+)
+STR_TITLE_FORMAT = {  # the format for each parameter in the title line
+    "test_id": "{:<30}",
+    "winlen": "{:<7}",
+    "winstep": "{:<7}",
+    "numcep": "{:<7}",
+    "nfilt": "{:<7}",
+    "acc": "{:5}",
+    "m_type": "{:<6}",
+    "structure_id": "{:<20}",
+    "machine": "{:<8}",
+    "train(s)": "{:8}",
+    "prep(s)": "{:7}",
+    "load(s)": "{:7}",
+    "epochs": "{:6}",
+    "n_label": "{:7}",
+    "opt": "{:<5}"
+}
+STR_DATA_FORMAT = {  # the format for each parameter in the data line
+    "test_id": "{:<30}",
+    "winlen": "{:7.1f}",
+    "winstep": "{:7.1f}",
+    "numcep": "{:7}",
+    "nfilt": "{:7}",
+    "acc": "{:.3f}",
+    "m_type": "{:<6}",
+    "structure_id": "{:<20}",
+    "machine": "{:<8}",
+    "train(s)": "{:8.1f}",
+    "prep(s)": "{:7.1f}",
+    "load(s)": "{:7.1f}",
+    "epochs": "{:6}",
+    "n_label": "{:7}",
+    "opt": "{:<5}"
+}
+# latex format = ["\\item ", " & ", "\\\\"]
+# terminal format = ["", ", ", ""]
+SEP = ["", ", ", ""]  # begin with SEP[0], divide with SEP[1] and end the line with SEP[2]
 
-def check_acc(min_acc=0.0, max_acc=1.0, n_label=0, structure_id="", optimizer=""):
-    model_path = "test"
-    print("{:<30}, {:5}, {:<6}, {:<20}, {:<8}, {:8}, {:7}, {:7}, {:6}, {:7}, {:<5}".format(
-        "test_id", "acc", "m_type", "structure_id", "machine", "train(s)", "prep(s)", "load(s)", "epochs", "n_label", "opt"))
-    for res_file in sorted(os.listdir(model_path)):
-        res_file_path = join(model_path, res_file)
+
+def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0, structure_id="", optimizer=""):
+    param_value = {}
+
+    # create the title line
+    title_formatted_output = SEP[0] + SEP[1].join([STR_TITLE_FORMAT[p] for p in param_list]) + SEP[2]
+    title_line = title_formatted_output.format(*param_list)
+    print(title_line)
+
+    #
+    for res_file in sorted(os.listdir(MODEL_PATH)):
+        res_file_path = join(MODEL_PATH, res_file)
         if os.path.isfile(res_file_path) and res_file.endswith('.json'):
             # get the results saved in the file
             res_json = {}
@@ -65,27 +116,35 @@ def check_acc(min_acc=0.0, max_acc=1.0, n_label=0, structure_id="", optimizer=""
                 print(colored("{:<30}, {:.3f}, NO param.json".format(res_file[:-5], acc), color))
                 continue
 
-            m_type = param_json["model_type"] if "model_type" in param_json else " "
-            m_machine = param_json["machine"][:6] if "machine" in param_json else " "
-            m_train_t = param_json["training_time"] if "training_time" in param_json else -1.0
-            m_preprocess_t = param_json["preproces_tot_time"] if "preproces_tot_time" in param_json else -1.0
-            m_load_data_t = param_json["load_dataset_time"] if "load_dataset_time" in param_json else -1.0
-            m_structure_id = param_json["structure_id"] if "structure_id" in param_json else " "
-            m_epochs = param_json["epochs"] if "epochs" in param_json else " "
-            m_n_labels = len(param_json["wanted_words"]) if "wanted_words" in param_json else " "
-            m_optimizer = param_json["optimizer"] if "optimizer" in param_json else " "
+            param_value["test_id"] = res_file[:-5]
+            param_value["acc"] = acc
+            param_value["m_type"] = param_json["model_type"] if "model_type" in param_json else " "
+            param_value["machine"] = param_json["machine"][:6] if "machine" in param_json else " "
+            param_value["train(s)"] = param_json["training_time"] if "training_time" in param_json else -1.0
+            param_value["prep(s)"] = param_json["preproces_tot_time"] if "preproces_tot_time" in param_json else -1.0
+            param_value["load(s)"] = param_json["load_dataset_time"] if "load_dataset_time" in param_json else -1.0
+            param_value["structure_id"] = param_json["structure_id"] if "structure_id" in param_json else " "
+            param_value["epochs"] = param_json["epochs"] if "epochs" in param_json else " "
+            param_value["n_label"] = len(param_json["wanted_words"]) if "wanted_words" in param_json else " "
+            param_value["opt"] = param_json["optimizer"] if "optimizer" in param_json else " "
+            param_value["winlen"] = param_json["winlen"] if "winlen" in param_json else " "
+            param_value["winstep"] = param_json["winstep"] if "winstep" in param_json else " "
+            param_value["numcep"] = param_json["numcep"] if "numcep" in param_json else " "
+            param_value["nfilt"] = param_json["nfilt"] if "nfilt" in param_json else " "
+
 
             # filter model
-            if not (n_label is None or n_label == m_n_labels or n_label <= 0):
+            if not (n_label is None or n_label == param_value["n_label"] or n_label <= 0):
                 continue
-            if not (structure_id == "" or structure_id == m_structure_id):
+            if not (structure_id == "" or structure_id == param_value["structure_id"]):
                 continue
-            if not (optimizer == "" or optimizer == m_optimizer):
+            if not (optimizer == "" or optimizer == param_value["opt"]):
                 continue
 
-            print(colored("{:<30}, {:.3f}, {:<6}, {:<20}, {:<8}, {:8.1f}, {:7.1f}, {:7.1f}, {:6}, {:7}, {:<5}"
-                          .format(res_file[:-5], acc, m_type, m_structure_id, m_machine, m_train_t, m_preprocess_t,
-                                  m_load_data_t, m_epochs, m_n_labels, m_optimizer), color))
+            # composition of the line within the values of the selected parameter
+            data_formatted_output = SEP[0] + SEP[1].join([STR_DATA_FORMAT[p] for p in param_list]) + SEP[2]
+            data_line = data_formatted_output.format(*[param_value[p] for p in param_list])
+            print(colored(data_line, color))
 
 
 if __name__ == "__main__":
@@ -97,10 +156,13 @@ if __name__ == "__main__":
     parser.add_argument('--n_label', type=int, help='The number of labels of the printed models')
     parser.add_argument('--structure_id', type=str, help='The structure_id of the printed models')
     parser.add_argument('--optimizer', type=str, help='The optimizer used for the train')
+    parser.add_argument('--param_list', type=str, help='The list of parameter to print')
 
     args = parser.parse_args()
 
     print(str(args))
 
     if args.action == "check_acc":
-        check_acc(min_acc=args.min_acc, max_acc=args.max_acc, n_label=args.n_label, structure_id=args.structure_id, optimizer=args.optimizer)
+        param_list = args.param_list.split(",") if args.param_list is not None else DEFAULT_PARAM_LIST
+        check_acc(param_list=param_list, min_acc=args.min_acc, max_acc=args.max_acc, n_label=args.n_label,
+                  structure_id=args.structure_id, optimizer=args.optimizer)

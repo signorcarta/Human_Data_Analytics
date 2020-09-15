@@ -418,8 +418,11 @@ class CNN(ASRModel):
             batch = sample[k_list[0]]
             labels = sample[k_list[1]]
             init = time.time()
-            preprocessed_batch = np.array([CNN.preprocess(data, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep, type=self.preprocess_type) for data in batch])
-            preprocessed_label = np.array([np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1))) for l in labels])
+            preprocessed_batch = np.array([CNN.preprocess(data, numcep=self.numcep, winlen=self.winlen,
+                                                          winstep=self.winstep, type=self.preprocess_type)
+                                           for data in batch])
+            preprocessed_label = np.array([np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1)))
+                                           for l in labels])
             self.preproces_tot_time += time.time() - init
             # print(preprocessed_label)
             yield preprocessed_batch, preprocessed_label
@@ -631,14 +634,14 @@ class CNN(ASRModel):
                     "nfilt": self.nfilt,  #: 26,
                     "nfft": self.nfft,  #: 512,
                     "preemph": self.preemph,  #: 0.97,
-                    "optimizer": self.optimizer,
-                    "loss": self.loss,
-                    "metrics": self.metrics,
+                    "input_shape": self.input_shape,
 
                     "structure_id": self.structure_id,  #: "light_cnn",
                     "filters": self.filters,  #: [64, 32],
                     "kernel_size": self.kernel_size,  #: [3, 3],
-                    "input_shape": self.input_shape,
+                    "optimizer": self.optimizer,
+                    "loss": self.loss,
+                    "metrics": self.metrics,
 
                     "epochs": self.epochs,
                     "t_batch_size": self.t_batch_size,
