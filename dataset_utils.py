@@ -61,6 +61,13 @@ def which_set(filename, validation_percentage, testing_percentage):
 
 
 def load_dataset(dataset_path, val_percentage=10., test_percentage=10.):
+    """
+    Return a list of dataset for training, validation and testing
+    :param dataset_path: the path of the dir within the directory named as the label of the contained samples
+    :param val_percentage: the percentage of validation desired
+    :param test_percentage: the percentage of testing desired
+    :return:
+    """
     x_train, y_train, x_val, y_val, x_test, y_test = [], [], [], [], [], []
 
     info = {
@@ -71,15 +78,18 @@ def load_dataset(dataset_path, val_percentage=10., test_percentage=10.):
             "counters": {}
             }
 
+    # load all the labels
     for lab in os.listdir(dataset_path):
         if isdir(join(dataset_path, lab)):
             info["labels"].append(lab)
             info["counters"][lab] = 0
+
     # load all path, input:
     path_list = []
     for label_dir in os.listdir(dataset_path):
         if isdir(join(dataset_path, label_dir)):
             for file in os.listdir(join(dataset_path, label_dir)):
+                # filter all file that are not .wav and with duration different of 1s (32044 bytes)
                 if file.endswith(".wav") and Path(join(dataset_path, label_dir, file)).stat().st_size == 32044:
                     path_list.append(join(label_dir, file))
                     info["tot_sample"] += 1
@@ -106,11 +116,25 @@ def load_dataset(dataset_path, val_percentage=10., test_percentage=10.):
         else:
             raise Exception("which_set fail! Debug the method.")
 
-    # generator of numpy array of batch size
     return x_train, y_train, x_val, y_val, x_test, y_test, info
 
 
 def dataset_generator(x_, y_, info, wanted_words, batch_size=1000, unknown_percentage=10., tot_size=-1, balanced=False):
+    """
+    This method select the samples for train, validation and test set batches. Moreover it read the audio and the resp
+    label. It need the wanted_words list to differentiate sample with label that are not in wanted_words.
+
+    :param x_: the sample of the dataset
+    :param y_: the resp labels of the sample
+    :param info: contain dataset_path, tot_sample, counters for each label
+    :param wanted_words: the list of wanted words of the model
+    :param batch_size: the size of each yielded batch
+    :param unknown_percentage: the percentage of unknown samples added to each batch
+    :param tot_size: used to set a limit to the batch size
+    :param balanced: boolean, if True, each yielded batch has a balanced number of samples for each label in wanted
+                        words, otherwise each sample of the dataset is added to the batch.
+    :return: a generator that yield one batch at a time with two components: 'audio' and 'label'.
+    """
 
     # adjust tot_size (from 1 to |x_|) and batch_size (from 1 to tot_size)
     if tot_size <= 0 or tot_size > len(x_):
@@ -130,7 +154,7 @@ def dataset_generator(x_, y_, info, wanted_words, batch_size=1000, unknown_perce
     # alphabetically sort all the label
     wanted_words.sort()
 
-    # calculate the number of sample for each label
+    # calculate the max number of samples for each label
     l_percentage = (100 - unknown_percentage)/(len(wanted_words) - 1)  # -1 is because 'unknown' in ww,
     max_size = {}
     for label in wanted_words:
@@ -146,7 +170,7 @@ def dataset_generator(x_, y_, info, wanted_words, batch_size=1000, unknown_perce
     inner_index = 0
     round_ = 0  # incremented each time inner_index >= len(x_)
     step = 0
-    while True:  # for i in range(0, max_iterations):
+    while True:  # the generator can generate batch forever, cycling the whole dataset
         xy_numpy = {'audio': [], 'label': []}
         batch_index = 0
         while batch_index < batch_size:
@@ -157,10 +181,11 @@ def dataset_generator(x_, y_, info, wanted_words, batch_size=1000, unknown_perce
                 if not balanced:
                     break
 
-            label = y_[inner_index] if y_[inner_index] in wanted_words else UNKNOWN
+            label = y_[inner_index] if y_[inner_index] in wanted_words else UNKNOWN  # the label of the current sample
 
-            # add the sample if
+            # add the sample to the yield batch if needed
             if balanced:
+                # evaluate if this label has too much samples in the current batch
                 if sample_counter[label] < max_size[label]:
                     sample_counter[label] += 1
                     fs, data = read(join(info["dataset_path"], y_[inner_index], x_[inner_index]))
@@ -177,14 +202,14 @@ def dataset_generator(x_, y_, info, wanted_words, batch_size=1000, unknown_perce
                 batch_index += 1
 
             inner_index += 1
-        if len(xy_numpy['label']) == 0:
-            continue
+        if len(xy_numpy['label']) == 0:  # happen when complete a tour of the whole dataset and at the same time,
+            continue                     # complete the batch. It will restart the dataset without yielding a void batch
 
         step += 1
-        print("round {:3.0f}, step {} , examined {}/{} , batch_size {} ".format(
-            round_, step, inner_index, len(x_), len(xy_numpy['label'])))
+        print("round {:3.0f}, step {} , examined {}/{} , batch_size {} ".format(round_, step, inner_index, len(x_),
+                                                                                len(xy_numpy['label'])))
         yield xy_numpy
-        sample_counter = {label: 0 for label in wanted_words}
+        sample_counter = {label: 0 for label in wanted_words}  # clean sample counter
     print("dataset_generator end!")  # it should never end
 
 

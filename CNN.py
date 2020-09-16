@@ -48,7 +48,6 @@ class CNN(ASRModel):
         self.wanted_words = []
         self.preproces_tot_time = 0.0
 
-
         # Load or create model, wanted_words and info
         if isfile(model_path) or isfile(join(model_path, MODEL_NAME)):      # load existing model
             input_param.update(CNN.load_data(join(model_path, INFO_NAME)))
@@ -61,13 +60,13 @@ class CNN(ASRModel):
             self.kernel_size = input_param["kernel_size"]  #: [3, 3],
 
             # compile model, needed to load it
-            self.optimizer = input_param["optimizer"]  # 'adam'
-            self.loss = input_param["loss"]  # 'categorical_crossentropy'
-            self.metrics = input_param["metrics"]  # ('accuracy')
+            self.optimizer = input_param["optimizer"] if "optimizer" in input_param else ""  # 'adam'
+            self.loss = input_param["loss"] if "loss" in input_param else ""    # 'categorical_crossentropy'
+            self.metrics = input_param["metrics"] if "metrics" in input_param else ""  # ('accuracy')
 
             self.model = self.load_model(model_path)
             self.info = input_param["info"]
-            self.training_time = input_param["training_time"]
+            self.training_time = input_param["training_time"] if "training_time" in input_param else ""
         elif isdir(model_path):                                             # create new model
             self.info = {}
 
@@ -93,9 +92,14 @@ class CNN(ASRModel):
             if input_param["preprocess_type"] == "mfcc":
                 input_shape = int(((1.0-input_param["winlen"])/input_param["winstep"])+2.000001), input_param["numcep"], 1
             elif input_param["preprocess_type"] == "specgram":
-                input_shape = input_param["input_shape"]
+                input_shape = [129, 124, 1]
 
             self.model = self.build_model(input_shape=input_shape)
+
+        if input_param["preprocess_type"] == "mfcc":
+            self.input_shape = int(((1.0 - input_param["winlen"]) / input_param["winstep"]) + 2.000001), input_param["numcep"], 1
+        elif input_param["preprocess_type"] == "specgram":
+            self.input_shape = [129, 124, 1]
 
 
         # preprocess param
@@ -105,8 +109,8 @@ class CNN(ASRModel):
         self.nfilt = input_param["nfilt"]  #: 26,
         self.nfft = input_param["nfft"]  #: 512,
         self.preemph = input_param["preemph"]  #: 0.97,
-        self.input_shape = input_param["input_shape"]
-        self.preprocess_type = input_param["preprocess_type"]
+        # self.input_shape = input_param["input_shape"] if "input_shape" in input_param else ""
+        self.preprocess_type = input_param["preprocess_type"] if "preprocess_type" in input_param else ""
 
         # input dataset of the model
         self.trainset_id = input_param["trainset_id"]
@@ -130,36 +134,54 @@ class CNN(ASRModel):
         self.unknown_percentage = input_param["unknown_percentage"]  # 10.
 
     def load_dataset(self, trainset, partitions=('train', 'validation')):
+        """
+        Load the file whithin the dataset in batches and preprocess them. Return a generator of the preprocessed
+        batches
+        :param trainset:
+        :param partitions:
+        :return:
+        """
 
-        if isdir(trainset):
+        if isdir(trainset):  # if the dataset is saved in the file system
             init = time.time()
             x_train, y_train, x_val, y_val, x_test, y_test, info = \
                 dataset_utils.load_dataset(trainset, val_percentage=self.val_percentage,
                                            test_percentage=self.test_percentage)
             self.load_dataset_time = time.time() - init
 
+            # define max_batch_size, test_batch_size, test_steps, t_batch_size, steps_per_epoch, epochs, v_batch_size,
+            # validation_steps, depending on the loaded dataset
+
+            # max_batch_size: set a limit of the dimension of the batch size, considering the machine and the set size
             if self.machine == "blade":
                 max_batch_size = 10000
             else:
                 max_batch_size = 2500
 
+            # test_batch_size: the size of the test
+            # test_steps: how many batch used for test, note that if len(x_test) % self.test_batch_size == 0,
+            #               than the last iteration has no sample and can be avoided.
             self.test_batch_size = min(max_batch_size, int(len(x_test)/2), self.test_batch_size)
             self.test_steps = int(len(x_test) / self.test_batch_size) \
                 if len(x_test) % self.test_batch_size != 0 \
                 else int(len(x_test) / self.test_batch_size) - 1
 
+            # the same as test_batch_size and test_steps
             self.t_batch_size = min(max_batch_size, int(len(x_train)/2), self.t_batch_size)
             self.steps_per_epoch = int(len(x_train) / self.t_batch_size)  \
                 if len(x_train) % self.t_batch_size != 0 \
                 else int(len(x_train) / self.t_batch_size) - 1
-            self.steps_per_epoch = int(self.steps_per_epoch / 10.0)
-            self.epochs *= 10
+            self.steps_per_epoch = int(self.steps_per_epoch / 10.0)  # is preferred to do more epochs with less steps
+            self.epochs *= 10                                        # to evaluate the validation more frequently
 
+            # the same as test_batch_size and test_steps
             self.v_batch_size = min(max_batch_size, int(len(x_val)/2), self.v_batch_size)
             self.validation_steps = int(len(x_val) / self.v_batch_size) \
                 if len(x_val) % self.v_batch_size != 0 \
                 else int(len(x_val) / self.v_batch_size) - 1
 
+            # with the calculated batch_size and steps, the selected wanted_words and the info,
+            # create the generator of the dataset, which read the audio and resp. label
             g_train = dataset_utils.dataset_generator(x_train, y_train, self.info, self.wanted_words,
                                                       batch_size=self.t_batch_size, tot_size=-1,
                                                       unknown_percentage=self.unknown_percentage)
@@ -171,7 +193,7 @@ class CNN(ASRModel):
                                                      unknown_percentage=self.unknown_percentage)
 
             self.info.update(info)
-        else:
+        else:  # if the dataset is downloaded from tfds
             import tensorflow_datasets as tfds
 
             ds_train, info_train = tfds.load('speech_commands', split=tfds.Split.TRAIN, batch_size=self.t_batch_size,
@@ -189,6 +211,8 @@ class CNN(ASRModel):
             g_val = tfds.as_numpy(ds_val)
             g_test = tfds.as_numpy(ds_test)
 
+        # for each batch of loaded audio and label, yield a batch of preprocessed audio with resp. label
+        # used to isolate the preprocessing phase from the load of the audio
         # TODO: len(self..wanted_words) is not supported for tfds in batch_preprocessing_gen
         xy_train = self.batch_preprocessing_gen(g_train, ('audio', 'label'), len(self.wanted_words))
         xy_val = self.batch_preprocessing_gen(g_val, ('audio', 'label'), len(self.wanted_words))
@@ -399,9 +423,11 @@ class CNN(ASRModel):
             batch = sample[k_list[0]]
             labels = sample[k_list[1]]
             init = time.time()
-            preprocessed_batch = np.array([CNN.preprocess(data, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep, type=self.preprocess_type) for data in batch])
-            preprocessed_label = np.array(
-                [np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1))) for l in labels])
+            preprocessed_batch = np.array([CNN.preprocess(data, numcep=self.numcep, winlen=self.winlen,
+                                                          winstep=self.winstep, type=self.preprocess_type)
+                                           for data in batch])
+            preprocessed_label = np.array([np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1)))
+                                           for l in labels])
             self.preproces_tot_time += time.time() - init
             # print(preprocessed_label)
             yield preprocessed_batch, preprocessed_label
@@ -534,7 +560,7 @@ class CNN(ASRModel):
 
     def train(self, trainset):
         """
-        Train the builded model in the input dataset specified in the
+        Train the builded model.
         :return: the id of the builded model, useful to get the .h5 file
         """
         # prepare logs dir for tensorboard
@@ -607,18 +633,23 @@ class CNN(ASRModel):
                     "trainset_id": self.trainset_id,
                     "testset_id": self.testset_id,
                     "model_type": "CNN",
+                    "preprocess_type": self.preprocess_type,
                     "winlen": self.winlen,  #: 0.025,
                     "winstep": self.winstep,  #: 0.01,
                     "numcep": self.numcep,  #: 13,
                     "nfilt": self.nfilt,  #: 26,
                     "nfft": self.nfft,  #: 512,
                     "preemph": self.preemph,  #: 0.97,
+                    "input_shape": self.input_shape,
 
                     "structure_id": self.structure_id,  #: "light_cnn",
                     "filters": self.filters,  #: [64, 32],
                     "kernel_size": self.kernel_size,  #: [3, 3],
+                    "optimizer": self.optimizer,
+                    "loss": self.loss,
+                    "metrics": self.metrics,
 
-                    "epochs": self.epochs,
+                    "epochs": self.epochs/10,
                     "t_batch_size": self.t_batch_size,
                     "steps_per_epoch": self.steps_per_epoch,
 
@@ -634,6 +665,7 @@ class CNN(ASRModel):
                     "training_time": self.training_time,
                     "load_dataset_time": self.load_dataset_time,
                     "preproces_tot_time": self.preproces_tot_time,
+                    "preprocess_type": self.preprocess_type,
                     }
         with open(join(self.model_path, INFO_NAME), 'w') as info_file:
             json.dump(cnn_data, info_file, indent=2, sort_keys=True)
@@ -698,3 +730,14 @@ class CNN(ASRModel):
         print("CNN test - {}".format(metrics))
 
         return metrics
+
+    def predict(self, sample):
+        if isinstance(sample, np.ndarray):
+            prediction = CNN.preprocess(sample, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep,
+                                        type=self.preprocess_type)
+            prediction = self.model.predict(np.array([prediction,]))
+            label = self.wanted_words[np.argmax(prediction)]
+
+        return prediction, label
+
+
