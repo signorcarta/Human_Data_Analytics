@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import time
 
 from os.path import join
 
@@ -9,13 +10,14 @@ from termcolor import colored
 MODEL_PATH = "test"
 DEFAULT_PARAM_LIST = (  # the list of parameter to print
     "test_id", "m_type", "structure_id", "machine",
-    "winlen", "winstep", "numcep", "nfilt",
-    "n_label", "epochs",
-    "train(s)", "prep(s)", "load(s)",
-    "opt", "acc"
+    "preprocess_type", #"winlen", "winstep", "numcep", "nfilt",
+    "n_label", "epochs", "tot_sample",
+    #"train(s)", "prep(s)", "load(s)",
+    "opt", "loss", "acc", "date"
 )
 STR_TITLE_FORMAT = {  # the format for each parameter in the title line
     "test_id": "{:<30}",
+    "preprocess_type": "{:<15}",
     "winlen": "{:<7}",
     "winstep": "{:<7}",
     "numcep": "{:<7}",
@@ -29,10 +31,14 @@ STR_TITLE_FORMAT = {  # the format for each parameter in the title line
     "load(s)": "{:7}",
     "epochs": "{:6}",
     "n_label": "{:7}",
-    "opt": "{:<5}"
+    "opt": "{:<5}",
+    "loss": "{:24}",
+    "tot_sample": "{:9}",
+    "date": "{:<15}",
 }
 STR_DATA_FORMAT = {  # the format for each parameter in the data line
     "test_id": "{:<30}",
+    "preprocess_type": "{:<15}",
     "winlen": "{:7.1f}",
     "winstep": "{:7.1f}",
     "numcep": "{:7}",
@@ -46,14 +52,18 @@ STR_DATA_FORMAT = {  # the format for each parameter in the data line
     "load(s)": "{:7.1f}",
     "epochs": "{:6}",
     "n_label": "{:7}",
-    "opt": "{:<5}"
+    "opt": "{:<5}",
+    "loss": "{:24}",
+    "tot_sample": "{:9}",
+    "date": "{:<15}",
 }
 # latex format = ["\\item ", " & ", "\\\\"]
 # terminal format = ["", ", ", ""]
-SEP = ["", ", ", ""]  # begin with SEP[0], divide with SEP[1] and end the line with SEP[2]
+SEP = ["\\item ", " & ", "\\\\"]  # begin with SEP[0], divide with SEP[1] and end the line with SEP[2]
 
 
-def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0, structure_id="", optimizer=""):
+def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0, structure_id="", optimizer="",
+              epochs=-1, tot_sample=-1, date=""):
     param_value = {}
 
     # create the title line
@@ -73,6 +83,7 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
             except json.decoder.JSONDecodeError:
                 print(colored("{:<30}, JSONDecodeError".format(res_file[:-5]), "red_1"))
                 continue
+            param_value["date"] = time.strftime("%Y/%m/%w %H:%M", time.gmtime(os.path.getmtime(res_file_path)))
 
             # get the accuracy
             if "test_accuracy" in res_json:
@@ -82,6 +93,7 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
             else:
                 print(colored("{:<30}, NO accuracy found".format(res_file[:-5]), "red_1"))
                 continue
+
 
             # filter results
             if not (min_acc <= acc <= max_acc):
@@ -116,9 +128,13 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
                 print(colored("{:<30}, {:.3f}, NO param.json".format(res_file[:-5], acc), color))
                 continue
 
+            if "epochs" in param_json and "steps_per_epoch" in param_json and "t_batch_size" in param_json:
+                param_value["tot_sample"] = param_json["epochs"] * param_json["steps_per_epoch"] * param_json["t_batch_size"]
+
             param_value["test_id"] = res_file[:-5]
             param_value["acc"] = acc
             param_value["m_type"] = param_json["model_type"] if "model_type" in param_json else " "
+            param_value["preprocess_type"] = param_json["preprocess_type"] if "preprocess_type" in param_json else " "
             param_value["machine"] = param_json["machine"][:6] if "machine" in param_json else " "
             param_value["train(s)"] = param_json["training_time"] if "training_time" in param_json else -1.0
             param_value["prep(s)"] = param_json["preproces_tot_time"] if "preproces_tot_time" in param_json else -1.0
@@ -127,11 +143,11 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
             param_value["epochs"] = param_json["epochs"] if "epochs" in param_json else " "
             param_value["n_label"] = len(param_json["wanted_words"]) if "wanted_words" in param_json else " "
             param_value["opt"] = param_json["optimizer"] if "optimizer" in param_json else " "
+            param_value["loss"] = param_json["loss"] if "loss" in param_json else " "
             param_value["winlen"] = param_json["winlen"] if "winlen" in param_json else " "
             param_value["winstep"] = param_json["winstep"] if "winstep" in param_json else " "
             param_value["numcep"] = param_json["numcep"] if "numcep" in param_json else " "
             param_value["nfilt"] = param_json["nfilt"] if "nfilt" in param_json else " "
-
 
             # filter model
             if not (n_label is None or n_label == param_value["n_label"] or n_label <= 0):
@@ -139,6 +155,12 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
             if not (structure_id == "" or structure_id == param_value["structure_id"]):
                 continue
             if not (optimizer == "" or optimizer == param_value["opt"]):
+                continue
+            if not (epochs <= 0 or epochs == param_value["epochs"]):
+                continue
+            if not (tot_sample <= 0 or tot_sample == param_value["tot_sample"]):
+                continue
+            if not (date == "" or date <= param_value["date"]):
                 continue
 
             # composition of the line within the values of the selected parameter
@@ -154,9 +176,12 @@ if __name__ == "__main__":
     parser.add_argument('--min_acc', type=float, help='The min acc of the model to show')
     parser.add_argument('--max_acc', type=float, help='The max acc of the model to show')
     parser.add_argument('--n_label', type=int, help='The number of labels of the printed models')
+    parser.add_argument('--epochs', type=int, help='The number of epochs of the printed models')
+    parser.add_argument('--tot_sample', type=int, help='The number of sample used to train the models')
     parser.add_argument('--structure_id', type=str, help='The structure_id of the printed models')
     parser.add_argument('--optimizer', type=str, help='The optimizer used for the train')
     parser.add_argument('--param_list', type=str, help='The list of parameter to print')
+    parser.add_argument('--date', type=str, help='The starting date of the model creation')
 
     args = parser.parse_args()
 
@@ -165,4 +190,5 @@ if __name__ == "__main__":
     if args.action == "check_acc":
         param_list = args.param_list.split(",") if args.param_list is not None else DEFAULT_PARAM_LIST
         check_acc(param_list=param_list, min_acc=args.min_acc, max_acc=args.max_acc, n_label=args.n_label,
-                  structure_id=args.structure_id, optimizer=args.optimizer)
+                  structure_id=args.structure_id, optimizer=args.optimizer, epochs=args.epochs,
+                  tot_sample=args.tot_sample, date=args.date)
