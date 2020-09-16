@@ -1,64 +1,104 @@
-% !TEX root = template.tex
-
+% !TEX root = CartaPerali_Report.tex
 \section{Processing Pipeline}
-\label{sec:processing_architecture}
+\label{sec:processing_pipeine}
 
-\begin{remark}
-\textbf{On tailoring the paper structure to your needs:} The structure recommended for the previous sections is rather standard and could work for different papers with differing technical content, the structure and the paper content from here on highly depends on the type of paper, possibilities are: mostly based on theoretical analysis, showing experimental design/activity, proposing a new technique and analyzing its performance via experiments or simulation. For the HDA course we deal with machine learning and, in detail, with training and testing neural network architectures to perform some specific inference or classification task. The following structure and comments are specifically addressing this type of technical content.
-\end{remark}
+\noindent The code necessary to replicate this work is available in the GitHub repository \footnote{https://github.com/Fisher4537/HumanDataAnalitycs}.\\
+The workflow used to implement the whole KWS system is depicted in Fig. \ref{fig:pipeline}.
+\begin{figure}[h]
+			\centering
+	    	\includegraphics[width=6cm, height=8cm ,width=0.25\textwidth]{pipeline}
+	    	\caption{System workflow}
+	    	\label{fig:pipeline}
+\end{figure} 
+\noindent As mentioned in the intro, the input data are downloaded from the well known public '{\it{speech\_commands}}' dataset \cite{Warden-2018}. At the time of this project it counts 105829 \textit{wav}, 16000 Hz, channel mono audio files. Each of them is listed and the file dimension is checked: only the file with size of 32K are kept, the other are discarded, indeed the audio with length less than 1 s have an higher probability to contain truncated word spell. \\
+As suggested by the author of the dataset \cite{Warden-2018}, to split the it into \textit{train}, \textit{validation} and \textit{test}, the hash of each audio is used to avoid that two different audio with the same label and pronounced by the same person would be put on different set (see \textit{which\_set} method described by the author in the README), compromising the interdependence between the different sets. \\
+The dataset is too huge be loaded into conventional RAM, therefore each list (train, validation and test) is dynamically split into lighter batches by specific generator (represented as dashed line in fig. \ref{fig:pipeline}). Each generator return a preprocessed audio as described next, which is consumed during the train and/or test phase.\\
+\textbf{Balanced batches and unknown percentage.} In a real application an audio stream is full of background noise and utterance to ignore. The keywords to recognize are only a little part. To differentiate background noise and unknown utterance, an \textit{unknown} label is added to the wanted words. The \textit{unknown} class should be composed of audio depending of the application context. In this report the problem is not faced. However it is provided a simple mechanism for the management of unknown label and the percentage of each label of the dataset. A list of \textit{wanted words} is passed as input parameter with an unknown percentage value. Each returned batch has the specified percentage of unknown audios taken from the file which are not in the wanted word list. In the report, each dataset with a specific percentage of unknown is defined as \textit{balanced}, instead, \textit{unbalanced} dataset has no specific unknown percentage and that class composed of all the speech recognition audio that are not labeled with a specified wanted word.
 
-\begin{remark}
-\textbf{Why having this section:} With this section, we start the technical description with a {\it high level} introduction of your work (e.g., processing pipeline). Here, you do not have to necessarily go into the technical details of every block/algorithm of your design, this will be done later as the paper develops. What I would like to see here is a high level description of the approach, i.e., which processing blocks you used, what they do (in words) and how these were combined, etc. This section should introduce the reader to your design, explain the different parts/blocks, how they interact and why. You should not delve into technical details for each block, but you should rather explain the big picture. \MR{Besides a well written explanation, I often use a nice diagram containing the various blocks and detailing their interrelations.}
-\end{remark} 
 
-\noindent \textbf{Writing tips:} Sections, Figures and Tables are usually shortened as Sec., Fig., Tab. 
-\begin{itemize}
-\item \textbf{Cross referencing:} In Latex, cross referencing is easy. You need to label an object through the \texttt{\textbackslash label\{labelid\}} command and referencing it where you need it through the \texttt{\textbackslash ref\{labelid\}} command. 
-\item \textbf{Suggestion:} I suggest to cross reference a table using \texttt{Tab.\mytexttilde\textbackslash ref\{tab:tableid\}}, the same holds for figures and sections, by just replacing ``\texttt{Tab.}'' with ``\texttt{Fig.}'' and ``\texttt{Sec.}''. Of course when defining the table, you need to add a Latex command \texttt{\textbackslash label\{tab:tableid\}} in the right place inside the table Latex environment to \mbox{cross-link} it. The tag \texttt{tab:tableid} is user defined and is the identifier that you associate with the table in question. You could call it \texttt{pippo} of you wish, but I recommend to use something like ``\texttt{tab:tableid}'' for tables, ``\texttt{eq:eqid}'' for equations, ``\texttt{sec:secid}'' for sections and so forth, where \texttt{tableid} has to be unique for each table in the document. The same applies to figures and all other objects. I guess you got the idea. This will lead to a neat Latex code and will facilitate cross referencing while avoiding duplicate labels, especially in large Latex documents (think of a book for example). 
-\item \textbf{But what about the tilde?} This is a nice trick I have learned from a friend (many years ago from Prof. Frank Fitzek, now at TU Dresden). When you write \texttt{Tab.\mytexttilde\textbackslash ref\{tab:tableid\}} Latex knows that \texttt{Tab.} and the corresponding table number \texttt{\textbackslash ref\{tab:tableid\}} must be displayed within the same line, i.e., they can never be broken across lines. This is nice and desirable I believe. I always use it for all referenced material, including citations; example: ``As done in\texttt{\mytexttilde\textbackslash cite\{suppa-wu-2019\}}.''
-\item \textbf{More about breaking stuff across lines} often times you have composed words, in line equations, etc. and for some reason you would like Latex to never break them across lines. Example: the Latex command \texttt{\textbackslash mbox\{Neural Networks (NN)\}} is processed by Latex so that ``\mbox{Neural Networks (NN)}'' is never broken across lines. I use this very often, also for inline equations that I do not want Latex to split across subsequent lines.
-\end{itemize}
-
-\section{Signals and Features}
+\section{Data preprocessing and Features extraction}
 \label{sec:model}
 
-Being a machine learning paper, I would have here a section describing the signals you have been working on. If possible, you should describe, in order, 
-\begin{enumerate}
-\item the measurement setup (if relevant), how input data is formatted (e.g., vectors of fixed size measured at regular sampling times), 
-\item how the signals were \mbox{pre-processed}, e.g., to remove noise, artifacts, fill gaps (missing points) or to re-interpolate the signals to represent them through a constant sampling rate, etc.
-\item after this, you should describe how {\it feature vectors} were obtained from the \mbox{pre-processed} signals. If signals are {\it time series} this also implies stating the segmentation / windowing strategy that you adopted, to then describe how you obtained a feature vector for each time window. Also, if you use existing feature extraction approaches, you may want to briefly describe them as well, in addition to (and before) your own (possibly new) feature extraction method.
-\end{enumerate}
+\noindent Data are preprocessed by \textit{generators} that are responsible for preparing batches of data containing the desired percentage of predefined wanted words, organized in a list, and the percentage of words that the model should classify as \textit{unknown}. \\
+Two different type of input are considered in this report: Mel-Frequency Cepstrum Coefficients or the spectrogram of the input file. MFCC is obtained with an external library "python\_speech\_command", and represent ...  MFCC frames are built using parameters depicted in Table \ref{table:mfcc_parameters}.
+\begin{table}[h!]
+	\centering
+	\begin{tabular}{ p{3cm}|p{3cm}|}
+		\hline
+		Window length & 25ms \\
+		Frame shift  & 10ms  \\
+		N. Filterbanks & 26\\
+		N. FFT points & 512\\
+		\hline
+	\end{tabular}
+	\caption{MFCC parameters}
+	\label{table:mfcc_parameters}
+\end{table}
+\noindent In the end, one set of 13 MFCC coefficients is extracted from each frame. 
+The spectrogram is obtained by applying fast fourier transform to overlying subsequent intervals of the input audio and it represent the active frequency over the time.
 
-\MR{Last but not least, this section should also contain information on how you have split the dataset into training, validation and test sets. This will be briefly recalled within the ``Results'' section.}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=.5\textwidth]{img/bed_rawsignal_plot.png}
+	\caption{Raw signal of the \textit{bad} utterance}
+	\label{fig:bed_rawsignal}
+\end{figure}
+
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{img/bed_mfcc_plot.png}
+	\caption{MFCC of the \textit{bad} utterance}
+	\label{fig:bed_mfcc}
+\end{figure}
+
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{img/bed_specgram_matplotlib.png}
+	\caption{Spectrogram of the \textit{bad} utterance}
+	\label{fig:bed_specgram}
+\end{figure}
+
 
 \section{Learning Framework}
 \label{sec:learning_framework}
 
-Here you finally describe the learning strategy / algorithm that you conceived and used to solve the problem at stake. A good diagram to exemplify how learning is carried out is often very useful. In this section, you should describe the learning model, its parameters, any optimization over a given parameter set, etc. You can organize this section into \mbox{sub-sections}. You are free to choose the most appropriate structure.
-
-\begin{remark}
-Note that the diagram that you put here differs from that of Section~\ref{sec:processing_architecture} as here you show the details of how your learning framework, or the core of it, is built. In Section~\ref{sec:processing_architecture} you instead provide a high-level description of the involved processing blocks, i.e., you describe the {\it processing flow} and the rationale behind it.
-\end{remark}
-
-\noindent \textbf{On math typesetting:} there are many Latex tricks that you should use to produce a high quality technical essay. A few are listed below, in random order:
+\subsection*{\textbf {CNN architectures and training}}Processed input data contain at this point the feature vectors ready to fed as input to the model. Different model structure has been analyzed using the convolutional layer as kernel of the neural network. Here there is a description of the implemented models:
 \begin{itemize}
-\item \textbf{Vectors and matrices:} $x$ is a scalar, whereas $\bm{x}$ (in bold) is a vector, and $\bm{X}$ is a matrix with elements $\bm{X} = [x_{ij}]$. For bold symbols you may use the \texttt{\textbackslash bm} Latex command, e.g., \texttt{\textbackslash bm(x)}.
-\item \textbf{Operators:} such as $\max$, $\min$, $\arg\!\max$, $\arg\!\min$ and special functions such as $\log(\cdot)$, $\exp(\cdot)$, $\sin(\cdot)$, $\cos(\cdot)$ are obtained through specific latex commands \texttt{\textbackslash min}, \texttt{\textbackslash max}, \texttt{\textbackslash arg\textbackslash!min}, \texttt{\textbackslash arg\textbackslash!max}, \texttt{\textbackslash log}, \texttt{\textbackslash exp}, \texttt{\textbackslash sin}, \texttt{\textbackslash cos}, etc. Use them! $log$, $exp$, $min$, $sin$, $cos$, etc., look ugly.
-\item \textbf{Sets} can be represented through calligraphic fonts, e.g., $\mathcal{S}$, $\mathcal{F}$, $\mathcal{B}$, etc., obtained using the Latex command \texttt{\textbackslash mathcal{\{S\}}}, etc.
-\item \textbf{Equations:} for a single equation use the \texttt{equation} Latex environment. Example: 
-\begin{equation}
-\label{eq:sigmoid}
-\sigma(x) = \frac{1}{1+e^{-x}}.
-\end{equation} 
-Now, using round brackets $($ and $)$ we get
-\begin{equation}
-\label{eq:sigmoid_comma}
-\sigma(x) = (\frac{1}{1+e^{-x}}),
-\end{equation} 
-but this looks ugly, you should use ``\texttt{\textbackslash left (}'' for ``$($'' and ``\texttt{\textbackslash right )}'' for ``$)$'', obtaining
-\begin{equation}
-\sigma(x) = \left ( \frac{1}{1+e^{-x}} \right ).
-\end{equation} 
-\item \textbf{Punctuation:} Displayed equations are usually considered to be part of the text and, in turn, they will get the very same punctuation as if they were inline with the text (and part of the sentence). If the sentence ends with a displayed equation, the equation gets a period ``.'' right after it, see Eq.~(\ref{eq:sigmoid}). iI the equation is instead part of a running sentence, which is continued after it, then the equation may be ended by a ``,'' as in Eq.~(\ref{eq:sigmoid_comma}). Use the standard grammar rules and your good sense of flow to assess how equations should be punctuated, I usually read through as if they were plain text.
-\end{itemize} 
+	\item \textbf{Light CNN} (light\_cnn): This is the simplest proposed model and is shown in figure \ref{fig:CNN_schema}.
+	\item \textbf{Light CNN with regularization} (light\_cnn\_reg\_2): an alternative of the first model with Regularization L1\_L2 in of the weight of the first Convolutional layer.
+	\item \textbf{Light CNN with Regularization and Dropout} (light\_cnn\_reg\_drop): an extension with a Dropout layer after the first Convolutional layer.
+	\item \textbf{Max pool} (mp): This is an alternative of light\_cnn with a MaxPool2D after each Convolutional layer.
+	\item \textbf{Double Dence} (dd): the light\_cnn with two Dence layer at the end of the sequential model.
+	\item \textbf{Double Dence with Dropout} (dd\_drop): an specialized version of \textit{dd} with a Dropout layer after the first Dense layer.
+\end{itemize}
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=5, height=8cm, width=0.25\textwidth]{CNN_schema}
+	\caption{Light\_cnn model}
+	\label{fig:CNN_schema}
+\end{figure} 
+\textbf{Optimizer.} The models are trained and optimized with two different built-in optimization algorithms in order to subsequently compare the obtained results. The deployed optimizers are the classic Stochastic Gradient Descent (SGD) and the Adam algorithm. \\
+\textbf{Callbacks.} During the training of the model, several callbacks are passed as input to improve the performances in a computationally smart way. The {\it{ReduceOnPlateau}} callback takes care of setting the learning rate according to the behavior of the accuracy's curve; the {\it{EarlyStopping}} callback has the purpose to stop the training process, if no significant improvement is observed for a defined number of epochs. The {\it{TensorBoard}} callback function provides an interface to show the behavior of the metrics of interest during the training.
+
+\section{Training analysis}
+In Fig. \ref{fig:CNN_loss} the behavior of the loss during the training phase is shown and in Fig.  \ref{fig:CNN_accuracy} accuracy's one is depicted.
+
+\begin{figure}[h]
+			\centering
+	    	\includegraphics[width=8cm, height=6cm]{debug_tuy_acc}
+	    	\caption{CNN training accuracy}
+	    	\label{fig:CNN_accuracy}
+\end{figure} 
+
+\begin{figure}[h]
+			\centering
+	    	\includegraphics[width=8cm, height=6cm]{debug_tuy_loss}
+	    	\caption{CNN training loss}
+	    	\label{fig:CNN_loss}
+\end{figure} 
+
+
 

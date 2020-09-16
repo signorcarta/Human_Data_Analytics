@@ -23,8 +23,9 @@
 \usepackage{setspace}
 \usepackage{bm}
 \usepackage{stackengine}
-
+\usepackage{enumitem}
 \usepackage{listings}
+\usepackage{tabularx}
 
 \lstset{%
  backgroundcolor=\color[gray]{.85},
@@ -68,6 +69,11 @@
 
 \renewcommand{\thetable}{\arabic{table}}
 \renewcommand{\thesubtable}{\alph{subtable}}
+\renewcommand{\labelenumii}{\theenumii}
+\renewcommand{\theenumii}{\theenumi.\arabic{enumii}.}
+%\renewcommand\thesection{\arabic{section}}
+\renewcommand\thesubsection{\thesection.\arabic{subsection}}
+\renewcommand\thesubsubsection{thesubsection{\thesection\arabic{subsection}}}
 
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
@@ -94,7 +100,7 @@
 
 % \IEEEoverridecommandlockouts\IEEEpubid{\makebox[\columnwidth]{PUT COPYRIGHT NOTICE HERE \hfill} \hspace{\columnsep}\makebox[\columnwidth]{ }} 
 
-\title{"Speech recognition'' \\ A system for keyword spotting through supervised learning techniques }
+\title{"Keyword Spotting'' \\ A system implemented through supervised learning techniques }
 
 \author{Davide Carta$^\dag$, Luca Perali$^\dag$
 \thanks{$^\dag$Department of Information Engineering, University of Padova, email: \{davide.carta.1, luca.perali\}@studenti.unipd.it}
@@ -111,12 +117,12 @@
 \maketitle
 
 \begin{abstract}
- Speech recognition is an interdisciplinary subfield of computer science that aim at developing systems capable of translating spoken language into text. In this paper different architechtures are investigated, comparing results and tradeoffs. Features are extracted through {\it [different techniques i.e.]} MFCC coefficients {\it [and maybe other types of features extraction.]}
-\\ Different types of Neural Networks i.e. Convolutional and Recurrent are deployed and compared with a Hidden Markov Model highlighting the results obtained in terms of efficiency, memory and computational speed.\\
+ Speech recognition is an interdisciplinary subfield of computer science that aim at developing systems capable of translating spoken language into text. In this paper different architechtures are investigated, comparing results and tradeoffs. Features are extracted through MFCC coefficients varying some parmeters.
+Different Convolutional Neural Network architectures are deployed and compared, highlighting the results obtained in terms of efficiency, memory and computational speed.\\
 \end{abstract}
 
 \IEEEkeywords
- Convolutional Neural Networks, Recurrent Neural Networks, Hidden Markov Models, Supervised Learning, Automatic Speech Recognition. 
+ Convolutional Neural Networks, Supervised Learning, Keyword Spotting. 
 \endIEEEkeywords
 
 
@@ -130,7 +136,7 @@
 
 \input{conclusions}
 
-\bibliography{biblio}
+\bibliography{bibliography}
 \bibliographystyle{ieeetr}
 
 \end{document}

@@ -47,3 +47,11 @@ Doxyfile
 Logo_Università_Padova.png
 
 *.pyc
+
+model/
+
+test/
+
+res/
+
+logs/
