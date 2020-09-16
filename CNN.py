@@ -92,9 +92,14 @@ class CNN(ASRModel):
             if input_param["preprocess_type"] == "mfcc":
                 input_shape = int(((1.0-input_param["winlen"])/input_param["winstep"])+2.000001), input_param["numcep"], 1
             elif input_param["preprocess_type"] == "specgram":
-                input_shape = input_param["input_shape"]
+                input_shape = [129, 124, 1]
 
             self.model = self.build_model(input_shape=input_shape)
+
+        if input_param["preprocess_type"] == "mfcc":
+            self.input_shape = int(((1.0 - input_param["winlen"]) / input_param["winstep"]) + 2.000001), input_param["numcep"], 1
+        elif input_param["preprocess_type"] == "specgram":
+            self.input_shape = [129, 124, 1]
 
 
         # preprocess param
@@ -104,7 +109,7 @@ class CNN(ASRModel):
         self.nfilt = input_param["nfilt"]  #: 26,
         self.nfft = input_param["nfft"]  #: 512,
         self.preemph = input_param["preemph"]  #: 0.97,
-        self.input_shape = input_param["input_shape"] if "input_shape" in input_param else ""
+        # self.input_shape = input_param["input_shape"] if "input_shape" in input_param else ""
         self.preprocess_type = input_param["preprocess_type"] if "preprocess_type" in input_param else ""
 
         # input dataset of the model
@@ -628,6 +633,7 @@ class CNN(ASRModel):
                     "trainset_id": self.trainset_id,
                     "testset_id": self.testset_id,
                     "model_type": "CNN",
+                    "preprocess_type": self.preprocess_type,
                     "winlen": self.winlen,  #: 0.025,
                     "winstep": self.winstep,  #: 0.01,
                     "numcep": self.numcep,  #: 13,
@@ -643,7 +649,7 @@ class CNN(ASRModel):
                     "loss": self.loss,
                     "metrics": self.metrics,
 
-                    "epochs": self.epochs,
+                    "epochs": self.epochs/10,
                     "t_batch_size": self.t_batch_size,
                     "steps_per_epoch": self.steps_per_epoch,
 
@@ -725,10 +731,10 @@ class CNN(ASRModel):
 
         return metrics
 
-
     def predict(self, sample):
         if isinstance(sample, np.ndarray):
-            prediction = CNN.preprocess(sample, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep, type='specgram')
+            prediction = CNN.preprocess(sample, numcep=self.numcep, winlen=self.winlen, winstep=self.winstep,
+                                        type=self.preprocess_type)
             prediction = self.model.predict(np.array([prediction,]))
             label = self.wanted_words[np.argmax(prediction)]
 

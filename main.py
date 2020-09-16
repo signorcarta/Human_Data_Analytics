@@ -218,9 +218,9 @@ def real_time_asr(params: Dict):
 
             # print the label iff is found multiple times consequentially
             if prediction_history[(ph_index-1) % ph_len] == label:
-                print("\r{}".format(label.upper()), end='')
+                print("{}".format(label.upper()))  # print("\r{}".format(label.upper()), end='')
             else:
-                print("\r{}".format(label.upper()), end='')
+                print("{}".format(label.upper()))  # print("\r{}".format(label.upper()), end='')
 
             ph_index = (ph_index + 1) % ph_len
 
