@@ -609,7 +609,6 @@ class CNN(ASRModel):
         elif self.optimizer.lower() == "adam":
             my_optimizer = keras.optimizers.Adam(learning_rate=self.lr)
 
-        self.optimizer = my_optimizer
         model.compile(loss=self.loss, optimizer=my_optimizer, metrics=self.metrics)
 
         return model
@@ -625,7 +624,7 @@ class CNN(ASRModel):
             shutil.rmtree(tensorboard_dir)
         os.makedirs(tensorboard_dir)
 
-        my_callbacks = [keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.1, patience=2, verbose=1,
+        my_callbacks = [keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.5, patience=2, verbose=1,
                                                           mode="auto", min_delta=1e-2, cooldown=1, min_lr=1e-4),
                         keras.callbacks.TerminateOnNaN(),
                         keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=4, verbose=1, mode="auto")]

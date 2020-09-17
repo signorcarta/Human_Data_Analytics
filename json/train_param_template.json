@@ -22,7 +22,7 @@
   "filters": [32, 32],
   "kernel_size": [[3, 3], [3, 3]],
 
-  "lr": 0.005,
+  "lr": 0.001,
   "optimizer": "Adam",
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
