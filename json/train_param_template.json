@@ -1,9 +1,9 @@
 {
   "model_type": "CNN",
 
-  "set_model_name": "spec",
+  "set_model_name": "seven",
   "structure_id": "light_cnn",
-  "preprocess_type": "specgram",
+  "preprocess_type": "mfcc",
 
   "winlen": 0.025,
   "winstep": 0.01,
@@ -22,17 +22,18 @@
   "filters": [32, 32],
   "kernel_size": [[3, 3], [3, 3]],
 
-  "optimizer": "SGD",
+  "lr": 0.005,
+  "optimizer": "Adam",
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 
-  "epochs": 5,
+  "epochs": 7,
   "t_batch_size": 500,
 
   "v_batch_size": 1000,
   "val_percentage": 2.5,
 
-  "test_batch_size": 1000,
+  "test_batch_size": 500,
   "test_percentage": 2.5,
   "unknown_percentage": 3.0,
 

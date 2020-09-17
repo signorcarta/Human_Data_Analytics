@@ -5,7 +5,6 @@ import random
 import string
 import shutil
 import platform
-import pyaudio
 import wave
 import numpy as np
 import time
@@ -24,6 +23,7 @@ if os.path.isdir("/nfsd"):  # the program is running in the cluster
 elif os.path.isdir("trainset"):  # the program is not running in the cluster
     TRAIN_PATH = "trainset"
     MACHINE = platform.uname()[1]  # 'jarvis-vivobooks15'
+    import pyaudio
 TEST_PATH = "test"
 MODEL_PATH = "model"
 RES_PATH = "res"
@@ -240,10 +240,6 @@ def real_time_asr(params: Dict):
     waveFile.setframerate(RATE)
     waveFile.writeframes(b''.join(frames))
     waveFile.close()
-
-
-
-
 
 
 def main(action, params, multi_test=None, set_model_name=None):

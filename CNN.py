@@ -604,7 +604,11 @@ class CNN(ASRModel):
 
             model = keras.models.Model(inputs=[inputs], outputs=[output])
 
-        my_optimizer = keras.optimizers.SGD(learning_rate=self.lr) if self.optimizer == "" else self.optimizer
+        if self.optimizer.lower() == "sgd":
+            my_optimizer = keras.optimizers.SGD(learning_rate=self.lr)
+        elif self.optimizer.lower() == "adam":
+            my_optimizer = keras.optimizers.Adam(learning_rate=self.lr)
+
         self.optimizer = my_optimizer
         model.compile(loss=self.loss, optimizer=my_optimizer, metrics=self.metrics)
 
