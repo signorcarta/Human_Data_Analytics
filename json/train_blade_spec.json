@@ -1,9 +1,9 @@
 {
   "model_type": "CNN",
 
+  "set_model_name": "sevenB",
   "structure_id": "light_cnn",
   "preprocess_type": "specgram",
-
 
   "winlen": 0.025,
   "winstep": 0.01,
@@ -19,14 +19,15 @@
                     "cat", "go", "no", "six", "visual", "dog", "happy", "off",
                     "stop", "wow", "down", "house", "on", "eight", "learn",
                     "one", "three", "zero", "yes", "tree"],
-  "filters": [64, 32],
-  "kernel_size": [3, 3],
+  "filters": [32, 32],
+  "kernel_size": [[3, 3], [3, 3]],
 
-  "optimizer": "SGD",
+  "lr": 0.005,
+  "optimizer": "Adam",
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 
-  "epochs": 10,
+  "epochs": 8,
   "t_batch_size": 1000,
 
   "v_batch_size": 1000,
