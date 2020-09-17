@@ -59,7 +59,7 @@ STR_DATA_FORMAT = {  # the format for each parameter in the data line
 }
 # latex format = ["\\item ", " & ", "\\\\"]
 # terminal format = ["", ", ", ""]
-SEP = ["\\item ", " & ", "\\\\"]  # begin with SEP[0], divide with SEP[1] and end the line with SEP[2]
+SEP = [["", ", ", ""], ["", " & ", "\\\\"]][1]  # begin with SEP[0], divide with SEP[1] and end the line with SEP[2]
 
 
 def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0, structure_id="", optimizer="",
