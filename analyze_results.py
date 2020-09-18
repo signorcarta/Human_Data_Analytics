@@ -83,7 +83,7 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
                 with open(res_file_path, 'r') as fp:
                     res_json = json.load(fp)  # load the json data of the results
             except json.decoder.JSONDecodeError:
-                print(colored("{:<30}, JSONDecodeError".format(res_file[:-5]), "red_1"))
+                print(colored("{:<30}, JSONDecodeError".format(res_file[:-5]), "red"))
                 continue
             param_value["date"] = time.strftime("%Y/%m/%w %H:%M", time.gmtime(os.path.getmtime(res_file_path)))
 
@@ -93,7 +93,7 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
             elif "accuracy" in res_json:
                 acc = res_json["accuracy"]
             else:
-                print(colored("{:<30}, NO accuracy found".format(res_file[:-5]), "red_1"))
+                print(colored("{:<30}, NO accuracy found".format(res_file[:-5]), "red"))
                 continue
 
 
@@ -124,7 +124,7 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
                     with open(param_file, 'r') as param_fp:
                         param_json = json.load(param_fp)  # load the json data of the results
                 except json.decoder.JSONDecodeError:
-                    print(colored("{:<30}, {:.3f}, JSONDecodeError".format(param_file[:-5], acc), "red_1"))
+                    print(colored("{:<30}, {:.3f}, JSONDecodeError".format(param_file[:-5], acc), "red"))
                     continue
             else:
                 print(colored("{:<30}, {:.3f}, NO param.json".format(res_file[:-5], acc), color))

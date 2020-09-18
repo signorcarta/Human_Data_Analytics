@@ -22,18 +22,18 @@
   "filters": [32, 32],
   "kernel_size": [[3, 3], [3, 3]],
 
-  "lr": 0.001,
   "optimizer": "Adam",
+  "lr": 0.005,
   "loss": "categorical_crossentropy",
   "metrics": ["accuracy"],
 
   "epochs": 7,
-  "t_batch_size": 500,
+  "t_batch_size": 100,
 
-  "v_batch_size": 1000,
+  "v_batch_size": 100,
   "val_percentage": 2.5,
 
-  "test_batch_size": 500,
+  "test_batch_size": 100,
   "test_percentage": 2.5,
   "unknown_percentage": 3.0,
 
