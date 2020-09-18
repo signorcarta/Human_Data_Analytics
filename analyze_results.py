@@ -13,7 +13,7 @@ DEFAULT_PARAM_LIST = (  # the list of parameter to print
     "preprocess_type", #"winlen", "winstep", "numcep", "nfilt",
     "n_label", "epochs", "tot_sample",
     #"train(s)", "prep(s)", "load(s)",
-    "opt", "loss", "acc", "date"
+    "opt", "loss", "lr", "acc", "date"
 )
 STR_TITLE_FORMAT = {  # the format for each parameter in the title line
     "test_id": "{:<30}",
@@ -33,6 +33,7 @@ STR_TITLE_FORMAT = {  # the format for each parameter in the title line
     "n_label": "{:7}",
     "opt": "{:<5}",
     "loss": "{:24}",
+    "lr": "{:5}",
     "tot_sample": "{:9}",
     "date": "{:<15}",
 }
@@ -54,6 +55,7 @@ STR_DATA_FORMAT = {  # the format for each parameter in the data line
     "n_label": "{:7}",
     "opt": "{:<5}",
     "loss": "{:24}",
+    "lr": "{:5}",
     "tot_sample": "{:9}",
     "date": "{:<15}",
 }
@@ -62,7 +64,7 @@ STR_DATA_FORMAT = {  # the format for each parameter in the data line
 SEP = [["", ", ", ""], ["", " & ", " \\\\"]][0]  # begin with SEP[0], divide with SEP[1] and end the line with SEP[2]
 
 
-def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0, structure_id="", optimizer="",
+def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0, structure_id="", optimizer="", lr=-1,
               epochs=-1, tot_sample=-1, date=""):
     param_value = {}
 
@@ -144,6 +146,7 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
             param_value["n_label"] = len(param_json["wanted_words"]) if "wanted_words" in param_json else " "
             param_value["opt"] = param_json["optimizer"] if "optimizer" in param_json else " "
             param_value["loss"] = param_json["loss"] if "loss" in param_json else " "
+            param_value["lr"] = param_json["lr"] if "lr" in param_json else -1
             param_value["winlen"] = param_json["winlen"] if "winlen" in param_json else " "
             param_value["winstep"] = param_json["winstep"] if "winstep" in param_json else " "
             param_value["numcep"] = param_json["numcep"] if "numcep" in param_json else " "
@@ -157,6 +160,8 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
             if not (optimizer == "" or optimizer == param_value["opt"]):
                 continue
             if not (epochs <= 0 or epochs == param_value["epochs"]):
+                continue
+            if not (lr is None or lr <= 0 or lr == param_value["lr"]):
                 continue
             if not (tot_sample <= 0 or tot_sample == param_value["tot_sample"]):
                 continue
@@ -175,6 +180,7 @@ if __name__ == "__main__":
     parser.add_argument('--action', '-a', type=str, help='Which type of action to perform? (train/test/rtasr)')
     parser.add_argument('--min_acc', type=float, help='The min acc of the model to show')
     parser.add_argument('--max_acc', type=float, help='The max acc of the model to show')
+    parser.add_argument('--lr', type=float, help='The max acc of the model to show')
     parser.add_argument('--n_label', type=int, help='The number of labels of the printed models')
     parser.add_argument('--epochs', type=int, help='The number of epochs of the printed models')
     parser.add_argument('--tot_sample', type=int, help='The number of sample used to train the models')
@@ -191,4 +197,4 @@ if __name__ == "__main__":
         param_list = args.param_list.split(",") if args.param_list is not None else DEFAULT_PARAM_LIST
         check_acc(param_list=param_list, min_acc=args.min_acc, max_acc=args.max_acc, n_label=args.n_label,
                   structure_id=args.structure_id, optimizer=args.optimizer, epochs=args.epochs,
-                  tot_sample=args.tot_sample, date=args.date)
+                  tot_sample=args.tot_sample, date=args.date, lr=args.lr)
