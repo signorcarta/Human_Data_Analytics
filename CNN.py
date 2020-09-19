@@ -428,7 +428,10 @@ class CNN(ASRModel):
             preprocessed_batch = np.array([CNN.preprocess(data, numcep=self.numcep, winlen=self.winlen,
                                                           winstep=self.winstep, type=self.preprocess_type)
                                            for data in batch])
-            preprocessed_label = np.array([np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1)))
+            if self.loss == "sparse_categorical_crossentropy":
+                preprocessed_label = np.array([l for l in labels])
+            else:
+                preprocessed_label = np.array([np.concatenate((np.zeros(l), np.array([1.0]), np.zeros(ww_size-l-1)))
                                            for l in labels])
             self.preproces_tot_time += time.time() - init
             # print(preprocessed_label)
@@ -612,7 +615,38 @@ class CNN(ASRModel):
 
             x = Dense(64, activation='relu')(attVector)
             x = Dense(32)(x)
+            output = Dense(len(self.wanted_words), activation='softmax', name='output')(x)
 
+            model = keras.models.Model(inputs=[inputs], outputs=[output])
+        elif self.structure_id == 'att_bilstm_drop':
+            inputs = Input(input_shape, name='input')
+
+            x = Conv2D(10, (5, 1), activation='relu', padding='same')(inputs)
+            x = BatchNormalization()(x)
+            x = Dropout(.1)(x)
+            x = Conv2D(1, (5, 1), activation='relu', padding='same')(x)
+            x = BatchNormalization()(x)
+
+            # x = Reshape((125, 80)) (x)
+            # keras.backend.squeeze(x, axis)
+            x = Lambda(lambda q: backend.squeeze(q, -1), name='squeeze_last_dim')(x)
+
+            x = Bidirectional(LSTM(64, return_sequences=True, dropout=0.2))(x)  # [b_s, seq_len, vec_dim]
+            x = Bidirectional(LSTM(64, return_sequences=True, dropout=0.2))(x)  # [b_s, seq_len, vec_dim]
+
+            xFirst = Lambda(lambda q: q[:, -1])(x)  # [b_s, vec_dim]
+            query = Dense(128)(xFirst)
+
+            # dot product attention
+            attScores = Dot(axes=[1, 2])([query, x])
+            attScores = Softmax(name="attSoftmax")(attScores)
+
+            # rescale sequence
+            attVector = Dot(axes=[1, 1])([attScores, x])  # [b_s, vec_dim]
+
+            x = Dense(64, activation='relu')(attVector)
+            x = Dropout(.2)(x)
+            x = Dense(32)(x)
             output = Dense(len(self.wanted_words), activation='softmax', name='output')(x)
 
             model = keras.models.Model(inputs=[inputs], outputs=[output])
@@ -623,6 +657,7 @@ class CNN(ASRModel):
             my_optimizer = keras.optimizers.Adam(learning_rate=self.lr)
 
         model.compile(loss=self.loss, optimizer=my_optimizer, metrics=self.metrics)
+        model.summary()
 
         return model
 
@@ -637,10 +672,10 @@ class CNN(ASRModel):
             shutil.rmtree(tensorboard_dir)
         os.makedirs(tensorboard_dir)
 
-        my_callbacks = [keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.5, patience=2, verbose=1,
-                                                          mode="auto", min_delta=1e-2, cooldown=1, min_lr=1e-4),
+        my_callbacks = [keras.callbacks.ReduceLROnPlateau(monitor="loss", factor=0.6, patience=2, verbose=1,
+                                                          mode="auto", min_delta=1e-2, cooldown=1, min_lr=1e-6),
                         keras.callbacks.TerminateOnNaN(),
-                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=4, verbose=1, mode="auto")]
+                        keras.callbacks.EarlyStopping(monitor="loss", min_delta=1e-3, patience=7, verbose=1, mode="auto")]
 
         if self.machine != 'blade':
             my_callbacks.append(keras.callbacks.TensorBoard(log_dir=tensorboard_dir))
@@ -756,8 +791,11 @@ class CNN(ASRModel):
         steps = 0
         labels, y_pred = np.array([], dtype=np.int64), np.array([], dtype=np.int64)
         for xy_ in xy_test:
-            labels = np.concatenate((np.argmax(xy_[1], axis=1), labels))
             prediction = self.model.predict(xy_[0])
+            if self.loss == "sparse_categorical_crossentropy":
+                labels = np.concatenate((xy_[1], labels))
+            else:
+                labels = np.concatenate((np.argmax(xy_[1], axis=1), labels))
             y_pred = np.concatenate((np.argmax(prediction, axis=1), y_pred))
             steps += 1
             if steps >= self.test_steps:
