@@ -2,23 +2,12 @@
 
 \section{Introduction}
 \label{sec:introduction}
+\noindent \textbf{Problem definition and relevance.} Keyword spotting is the problem of transcribing keyword utterance. Several voice interfaces (i.e. Alexa, Siri, Cortana) rely on keyword spotting for the detection of wake-up words that determine the beginning of an interaction. These systems are continuously listening for an audio input from the embedded microphones and, once a likely trigger phrase is detected, the interaction begins. 
+In this paper keyword spotting is addressed as a closed-set classification problem, as most of the existing solutions. CNN-based architectures are deployed playing on different data preprocessing parameters and \mbox{Neural Network's} hyperparameters tuning.\\
 
-\noindent \textbf{Paper contribution.} In this paper a keyword spotting system is implemented investigating different architechtures and learning techniques. (specificare quali) \\
+\noindent \textbf{Paper contribution.} In this paper a keyword spotting system is implemented investigating Convolutional Neural Network with MFCC or spectrogram preprocess. \\
 
-\noindent \textbf{Dataset description.} \cite{Warden-2018} The systems is trained on the \mbox{"{\it speech\_commands}"} dataset. It contains 105,829 utterances of 35 distinct words coming from 2,618 different persons, each one having the duration of at most one second, stored in {\it .wav} format files. The contained audio allow to reflect the trigger phrase task that a keyword spotting system aims at achieving and cope with noisy environments, poor quality recording tools or people taking in a natural way. \\
+\noindent \textbf{Dataset description.} \cite{Warden-2018} The systems is trained on the \mbox{"{\it speech\_commands V2}"} dataset. It contains 105,829 utterances of 35 distinct words coming from 2,618 different persons, each one having the duration of at most one second, 16000 Hz, stored in {\it .wav} format files. The contained audio allow to reflect the trigger phrase task that a keyword spotting system aims at achieving and cope with noisy environments, poor quality recording tools or people taking in a natural way. \\ 
 
-\noindent  Several voice interfaces (i.e. Alexa, Siri, Cortana) rely on keyword spotting, for the detection of wake-up words that determine the beginning of an interaction. These systems are continuously listening for an audio input from the embedded microphones and, once a likely trigger phrase is detected, the interaction begins. 
-In this paper keyword spotting is addressed as a closed-set classification problem, as most of the existing solutions. CNN-based architectures are deployed playing on different data preprocessing parameters and \mbox{Neural Network's} hyperparameters tuning. \red{{\it to be continued}}
-\begin{itemize} 
-\item \textbf{Present the paper contribution:} \red{ A third paragraph were you state what you do in the paper, this should also be concisely written. A good rule of thumb is to make it max 10/15 lines. Here, you should state up front:
-\begin{enumerate}
-\item \textbf{problem}: the problem at stake, 
-\item \textbf{relevance}: the relevance and timeliness of what you propose, 
-\item \textbf{approach}: the technique/approach you use, possibly underlying its novelty, efficiency, 
-\item \textbf{value}: underline the value/novelty of your proposal referencing (recent) papers from the literature,
-\item \textbf{applicability}: tell the reader how she/he can take advantage of your work, e.g., how your work/results can be reused/exploited to achieve further scientific, technical or practical (integrated into products?) goals.
-\end{enumerate}
-\item \textbf{Summary of contributions:} After this, you may want to provide an itemized list to summarize the paper contributions. Rule of thumb: from three to six items, from three to four lines each.}
-\end{itemize}
-\noindent \textbf{Paper structure.} In Section~I it is introduced the problem and what is done in the paper. In Section~II it is described the related work and state of the art. The processing pipeline is described in Sections~III. In Section~IV the data preprocessing and features extraction work is presented. Section~VI describes the learning framework. Obtained results are presented in Section~VI.  Concluding remarks are provided in Section~VII.
+\noindent \textbf{Paper structure.} In Section~I it is introduced the problem and what is done in the paper. In Section~II it is described the related work and state of the art. The processing pipeline is described in Sections~III. In Section~IV the data preprocessing and features extraction work is presented. In Section~V are described the implemented preprocess. Section~VI describes the learning framework. Obtained results are presented in Section~VI.  Concluding remarks are provided in Section~VII.
 

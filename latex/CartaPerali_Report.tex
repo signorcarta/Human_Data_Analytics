@@ -100,7 +100,7 @@
 
 % \IEEEoverridecommandlockouts\IEEEpubid{\makebox[\columnwidth]{PUT COPYRIGHT NOTICE HERE \hfill} \hspace{\columnsep}\makebox[\columnwidth]{ }} 
 
-\title{"Keyword Spotting'' \\ A system implemented through supervised learning techniques }
+\title{Keyword Spotting with Convolutional Neural Network}
 
 \author{Davide Carta$^\dag$, Luca Perali$^\dag$
 \thanks{$^\dag$Department of Information Engineering, University of Padova, email: \{davide.carta.1, luca.perali\}@studenti.unipd.it}
@@ -117,8 +117,8 @@
 \maketitle
 
 \begin{abstract}
- Speech recognition is an interdisciplinary subfield of computer science that aim at developing systems capable of translating spoken language into text. In this paper different architechtures are investigated, comparing results and tradeoffs. Features are extracted through MFCC coefficients varying some parmeters.
-Different Convolutional Neural Network architectures are deployed and compared, highlighting the results obtained in terms of efficiency, memory and computational speed.\\
+Speech recognition is an interdisciplinary subfield of computer science that aim at developing systems capable of translating spoken language into text. In this paper different architectures are investigated, comparing results and tradeoffs. Two different methods are used to extract features: Mel-Frequency Cepstrum Coefficients (MFCC) computed with \textit{python\_speech\_features} library and spectrogram computed with \textit{matplotlib} library. \\
+Different Convolutional Neural Network (CNN) architectures are deployed and compared, highlighting the results obtained in terms of test accuracy, number of trainable parameters and training time.\\
 \end{abstract}
 
 \IEEEkeywords

@@ -10,7 +10,7 @@ The workflow used to implement the whole KWS system is depicted in Fig. \ref{fig
 	    	\caption{System workflow}
 	    	\label{fig:pipeline}
 \end{figure} 
-\noindent As mentioned in the intro, the input data are downloaded from the well known public '{\it{speech\_commands}}' dataset \cite{Warden-2018}. At the time of this project it counts 105829 \textit{wav}, 16000 Hz, channel mono audio files. Each of them is listed and the file dimension is checked: only the file with size of 32K are kept, the other are discarded, indeed the audio with length less than 1 s have an higher probability to contain truncated word spell. \\
+\noindent As mentioned in the intro, the input data are downloaded from the well known public '{\it{speech\_commands V2}}' dataset \cite{Warden-2018}. At the time of this project it counts 105829 audio file, in \textit{.wav} format, 16000 Hz, channel mono with the duration of one second each. Each of them is listed and the file dimension is checked: only the file with size of 32K are kept, the other are discarded, indeed the audio with length less than 1 s have an higher probability to contain truncated word spell. \\
 As suggested by the author of the dataset \cite{Warden-2018}, to split the it into \textit{train}, \textit{validation} and \textit{test}, the hash of each audio is used to avoid that two different audio with the same label and pronounced by the same person would be put on different set (see \textit{which\_set} method described by the author in the README), compromising the interdependence between the different sets. \\
 The dataset is too huge be loaded into conventional RAM, therefore each list (train, validation and test) is dynamically split into lighter batches by specific generator (represented as dashed line in fig. \ref{fig:pipeline}). Each generator return a preprocessed audio as described next, which is consumed during the train and/or test phase.\\
 \textbf{Balanced batches and unknown percentage.} In a real application an audio stream is full of background noise and utterance to ignore. The keywords to recognize are only a little part. To differentiate background noise and unknown utterance, an \textit{unknown} label is added to the wanted words. The \textit{unknown} class should be composed of audio depending of the application context. In this report the problem is not faced. However it is provided a simple mechanism for the management of unknown label and the percentage of each label of the dataset. A list of \textit{wanted words} is passed as input parameter with an unknown percentage value. Each returned batch has the specified percentage of unknown audios taken from the file which are not in the wanted word list. In the report, each dataset with a specific percentage of unknown is defined as \textit{balanced}, instead, \textit{unbalanced} dataset has no specific unknown percentage and that class composed of all the speech recognition audio that are not labeled with a specified wanted word.
@@ -19,24 +19,38 @@ The dataset is too huge be loaded into conventional RAM, therefore each list (tr
 \section{Data preprocessing and Features extraction}
 \label{sec:model}
 
-\noindent Data are preprocessed by \textit{generators} that are responsible for preparing batches of data containing the desired percentage of predefined wanted words, organized in a list, and the percentage of words that the model should classify as \textit{unknown}. \\
-Two different type of input are considered in this report: Mel-Frequency Cepstrum Coefficients or the spectrogram of the input file. MFCC is obtained with an external library "python\_speech\_command", and represent ...  MFCC frames are built using parameters depicted in Table \ref{table:mfcc_parameters}.
-\begin{table}[h!]
+\noindent Data are preprocessed by \textit{generators} that are responsible for preparing batches of data containing the desired percentage of predefined wanted words, organized in a list and the percentage of words that the model should classify as \textit{unknown} if used.\\
+The preprocessed example are obtained from the raw signal of the "bad" utterance represented in figure \ref{fig:bed_rawsignal}.\\
+
+\noindent \textbf{MFCC.} The raw data is normalized from -1 to 1 and the Mel-Frequency Cepstrum Coefficients are computed with \textit{python\_speech\_features} library. This one apply the Fast Fourier Transform, the power of the spectrum obtained is mapped onto the mel scale using triangular overlapping, then the logs of the powers at each of the mel frequencies is taken and in the end the discrete cosine transform of the list of mel log powers is computed. MFCC frames are built using the selected parameters depicted in Table \ref{table:mfcc_parameters}.
+\noindent In the end, one set of 13 MFCC coefficients is extracted from each frame. In figure \ref{fig:bed_mfcc} is shown an example of preprocess of an input signal.
+\begin{table}[h]
 	\centering
-	\begin{tabular}{ p{3cm}|p{3cm}|}
-		\hline
-		Window length & 25ms \\
-		Frame shift  & 10ms  \\
-		N. Filterbanks & 26\\
-		N. FFT points & 512\\
+	\begin{tabular}{ lr}
+		Window length & 25 ms        \\
+		Window step & 0.01 ms        \\
+		Frame shift  & 10 ms         \\
+		N. of cepstrum to return & 13 \\
+		N. Filterbanks & 26         \\
+		N. FFT points & 512         \\
 		\hline
 	\end{tabular}
 	\caption{MFCC parameters}
-	\label{table:mfcc_parameters}
-\end{table}
-\noindent In the end, one set of 13 MFCC coefficients is extracted from each frame. 
-The spectrogram is obtained by applying fast fourier transform to overlying subsequent intervals of the input audio and it represent the active frequency over the time.
-
+	\label{table:mfcc_parameters} 
+\end{table}\\
+\noindent \textbf{Spectrogram.} Raw data are normalized from 1 to -1, split into segments, multiply by the windowing function and then the Fast Fourier Transform is apply.
+The parameter values used to compute the spectrogram are in Table \ref{table:specgram_parameters}. In figure \ref{fig:bed_specgram} is shown an example of preprocess of an input signal.
+\begin{table}[h]
+	\centering
+	\begin{tabular}{ lr}
+		N. of points per segment & 256 \\
+		Windowing function & Hanning window \\
+		N. of overlapping points between segments & 128 \\
+		\hline
+	\end{tabular}
+	\caption{Spectrogram parameters}
+	\label{table:specgram_parameters} 
+\end{table}\\
 
 \begin{figure}
 	\centering
