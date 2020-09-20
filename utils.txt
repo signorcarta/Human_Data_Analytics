@@ -1,0 +1,18 @@
+
+# Per lanciare più test in sequenza
+# NOTA: massima attenzione ai due file di configurazione che altrimenti rischi di lanciare dei train e test per nulla
+# NOTA: ogni singolo train ci mette circa 1 ora
+python main.py --action train,test --json json\train_param_template.json --multitest json\multiple_params.json
+
+# Visualizza i risultati dei modelli testati
+# min_acc: l'accuratezza nel test minima che deve avere un modello per essere plottato
+# max_acc: l'accuratezza nel test massima che deve avere un modello per essere plottato
+# n_label: il numero di labels dei modelli plottati, se -1 vengono plottati tutti
+# structure_id: il nome della struttura dei modelli che vuoi plottare, se "" vengono plottati tutti
+# epochs: il numero di epochs dei modelli plottati, se -1 vengono plottati tutti
+# tot_sample: il numero di tot_sample dei modelli plottati, se -1 vengono plottati tutti
+# date: filtra tutti i modelli creati prima della data specificata
+# param_list: lista dei nomi delle colonne che vengono plottati. Se vuoto non ne ven
+python analyze_results.py --action check_acc --min_acc .0 --max_acc 1.0 --n_label -1 --structure_id "" --optimizer "" \
+--epochs -1 --tot_sample -1 --date "2020/09/3 10:13" \
+--param_list "structure_id,preprocess_type,train(s),prep(s),load(s),epochs,tot_sample,n_label,acc"

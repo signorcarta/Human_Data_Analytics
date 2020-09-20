@@ -26,11 +26,12 @@ The preprocessed example are obtained from the raw signal of the "bad" utterance
 \noindent In the end, one set of 13 MFCC coefficients is extracted from each frame. In figure \ref{fig:bed_mfcc} is shown an example of preprocess of an input signal.
 \begin{table}[h]
 	\centering
-	\begin{tabular}{ lr}
+	\begin{tabular}{ |l|c|}
+		\hline
 		Window length & 25 ms        \\
 		Window step & 0.01 ms        \\
 		Frame shift  & 10 ms         \\
-		N. of cepstrum to return & 13 \\
+		N. of coefficients & 13 \\
 		N. Filterbanks & 26         \\
 		N. FFT points & 512         \\
 		\hline
@@ -42,7 +43,8 @@ The preprocessed example are obtained from the raw signal of the "bad" utterance
 The parameter values used to compute the spectrogram are in Table \ref{table:specgram_parameters}. In figure \ref{fig:bed_specgram} is shown an example of preprocess of an input signal.
 \begin{table}[h]
 	\centering
-	\begin{tabular}{ lr}
+	\begin{tabular}{ |l|c| }
+		\hline
 		N. of points per segment & 256 \\
 		Windowing function & Hanning window \\
 		N. of overlapping points between segments & 128 \\
