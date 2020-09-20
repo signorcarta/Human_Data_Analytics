@@ -43,7 +43,7 @@ class CNN(ASRModel):
         self.model_path = model_path if isdir(model_path) else dirname(model_path)
         self.model_id = CNN.get_id_from_path(self.model_path)
         self.machine = input_param['machine']
-        self.lr = input_param["lr"]
+        self.lr = input_param["lr"] if "lr" in input_param else -1
 
         # output initialization
         self.out_param = {}
@@ -569,25 +569,6 @@ class CNN(ASRModel):
             model.add(Dense(int(len(self.wanted_words)*1.5), activation=relu,
                             kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5)))
             model.add(Dropout(.1))
-            model.add(Dense(len(self.wanted_words), activation=softmax))
-        elif self.structure_id == 'mp_drop_r':
-            model = Sequential()
-            model.add(Conv2D(self.filters[0], kernel_size=self.kernel_size[0], activation=relu, input_shape=input_shape,
-                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
-                            bias_regularizer=regularizers.l2(1e-5),
-                            activity_regularizer=regularizers.l2(1e-5)))
-            model.add(MaxPool2D((2, 2)))
-            model.add(Conv2D(self.filters[1], kernel_size=self.kernel_size[1], activation=relu,
-                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
-                            bias_regularizer=regularizers.l2(1e-5),
-                            activity_regularizer=regularizers.l2(1e-5)))
-            model.add(MaxPool2D((2, 2)))
-            model.add(Flatten())
-            model.add(Dense(int(len(self.wanted_words)*1.5), activation=sigmoid,
-                            kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-5),
-                            bias_regularizer=regularizers.l2(1e-5),
-                            activity_regularizer=regularizers.l2(1e-5)))
-            model.add(Dropout(.2))
             model.add(Dense(len(self.wanted_words), activation=softmax))
         elif self.structure_id == 'att_bilstm':
             inputs = Input(input_shape, name='input')

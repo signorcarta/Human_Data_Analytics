@@ -157,7 +157,7 @@ def real_time_asr(params: Dict):
     CHANNELS = 1
     RATE = 16000
     CHUNK = 1024
-    RECORD_SECONDS = 35
+    RECORD_SECONDS = 5
     WAVE_OUTPUT_FILENAME = "file.wav"
     MIN_ACTIVATION_THRESHOLD = 1024
 
