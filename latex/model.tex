@@ -21,10 +21,10 @@ The dataset is too huge to be loaded into conventional RAM, therefore each list 
 \label{sec:model}
 
 \noindent Data are preprocessed by \textit{generators} that are responsible for preparing batches of data containing the desired percentage of predefined wanted words, organized in a list and the percentage of \textit{unknown} words if used.\\
-The preprocessed example are obtained from the raw signal of the "bad" utterance represented in figure \ref{fig:bed_rawsignal}.\\
+The preprocessed example are obtained from the raw signal of the "bad" utterance represented in Fig. \ref{fig:bed_rawsignal}.\\
 
 \noindent \textbf{MFCC.} The raw data is normalized from -1 to 1 and the Mel-Frequency Cepstrum Coefficients are computed with \textit{python\_speech\_features} library. This one applies the Fast Fourier Transform, the power of the spectrum obtained is mapped onto the mel scale using triangular overlapping, then the logs of the powers at each of the mel frequencies is taken and in the end the discrete cosine transform of the list of mel log powers is computed. MFCC frames are built using the selected parameters depicted in Table \ref{table:mfcc_parameters}.
-\noindent In the end, one set of 13 MFCC coefficients is extracted from each frame. In figure \ref{fig:bed_mfcc} an example of preprocess of an input signal is shown.
+\noindent In the end, one set of 13 MFCC coefficients is extracted from each frame. In Fig. \ref{fig:bed_mfcc} an example of preprocess of an input signal is shown.
 \begin{table}[h]
 	\centering
 	\begin{tabular}{ |l|c|}
@@ -41,7 +41,7 @@ The preprocessed example are obtained from the raw signal of the "bad" utterance
 	\label{table:mfcc_parameters} 
 \end{table}\\
 \noindent \textbf{Spectrogram.} Raw data are normalized from 1 to -1, split into segments, multiplied by the windowing function and then the Fast Fourier Transform is applied.
-The parameter values used to compute the spectrogram are in Table \ref{table:specgram_parameters}. In figure \ref{fig:bed_specgram} an example of preprocessing of an input signal is shown.
+The parameter values used to compute the spectrogram are in Table \ref{table:specgram_parameters}. In Fig. \ref{fig:bed_specgram} an example of preprocessing of an input signal is shown.
 \begin{table}[h]
 	\centering
 	\begin{tabular}{ |l|c| }
