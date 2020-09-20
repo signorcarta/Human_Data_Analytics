@@ -65,14 +65,37 @@ The spectrogram is obtained by applying fast fourier transform to overlying subs
 \section{Learning Framework}
 \label{sec:learning_framework}
 
-\subsection*{\textbf {CNN architectures and training}}Processed input data contain at this point the feature vectors ready to fed as input to the model. Different model structure has been analyzed using the convolutional layer as kernel of the neural network. Here there is a description of the implemented models:
+\subsection*{\textbf {CNN architecture}}
+\label{subsec:arch}
+\noindent Processed input data contain at this point the feature vectors ready to be fed as input to the model. Different CNN architechtures have been tested. The types of layer composing the final CNN architechture are the following:
 \begin{itemize}
-	\item \textbf{Light CNN} (light\_cnn): This is the simplest proposed model and is shown in figure \ref{fig:CNN_schema}.
-	\item \textbf{Light CNN with regularization} (light\_cnn\_reg\_2): an alternative of the first model with Regularization L1\_L2 in of the weight of the first Convolutional layer.
-	\item \textbf{Light CNN with Regularization and Dropout} (light\_cnn\_reg\_drop): an extension with a Dropout layer after the first Convolutional layer.
-	\item \textbf{Max pool} (mp): This is an alternative of light\_cnn with a MaxPool2D after each Convolutional layer.
-	\item \textbf{Double Dence} (dd): the light\_cnn with two Dence layer at the end of the sequential model.
-	\item \textbf{Double Dence with Dropout} (dd\_drop): an specialized version of \textit{dd} with a Dropout layer after the first Dense layer.
+\item {\it{Convolutional layer}}: responsible of learning the features. In this type of layer, regularization is applied to prevent overfitting.
+\item {\it{Pooling layer}}: performs down-sampling by taking max operation. This reduces the amount of parameters in the network, and hence controls overfitting.
+\item {\it{Flattern layer}}: flattens the input. It's placed between a convolutional and a dense layer.
+\item {\it{Dense layer}}: also known as fully-connected layer, receives the input from convolutional layers or can be the last layer in the network, thus used to make a softmax prediction.
+\item {\it{Dropout layer}}: placed between two subsequent fully-connected layers, ignore some neurons with a certain probability during the training phase. It is used to prevent overfitting.\\
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{| p{3cm} c c c |}
+ \hline
+Type & Dimension & Depth & Activation\\
+\hline
+Convolutional 1 & 2x2 & 32 & ReLu \\
+Convolutional 1 & 2x2 & 32 & ReLu \\
+Pooling & 2x2 & - & -\\
+Flatten & - & - & -\\
+Dense 1 & ? & - & ReLu \\
+Dense 2 & ? & - &Softmax \\
+Dropout & - &  - & -\\
+\hline
+\end{tabular}
+\caption{CNN Layers details}
+\label{table:CNN_details}
+\end{table}
+
+The layers described in Table. \ref{table:CNN_details}, are combined to build the desired CNN architecture as shown in Fig. \ref{fig:CNN_schema}
+
 \end{itemize}
 \begin{figure}[h]
 	\centering
@@ -80,11 +103,30 @@ The spectrogram is obtained by applying fast fourier transform to overlying subs
 	\caption{Light\_cnn model}
 	\label{fig:CNN_schema}
 \end{figure} 
-\textbf{Optimizer.} The models are trained and optimized with two different built-in optimization algorithms in order to subsequently compare the obtained results. The deployed optimizers are the classic Stochastic Gradient Descent (SGD) and the Adam algorithm. \\
-\textbf{Callbacks.} During the training of the model, several callbacks are passed as input to improve the performances in a computationally smart way. The {\it{ReduceOnPlateau}} callback takes care of setting the learning rate according to the behavior of the accuracy's curve; the {\it{EarlyStopping}} callback has the purpose to stop the training process, if no significant improvement is observed for a defined number of epochs. The {\it{TensorBoard}} callback function provides an interface to show the behavior of the metrics of interest during the training.
 
 \section{Training analysis}
-In Fig. \ref{fig:CNN_loss} the behavior of the loss during the training phase is shown and in Fig.  \ref{fig:CNN_accuracy} accuracy's one is depicted.
+\noindent The training phase of the model described in Section. \ref{sec:learning_framework} was conducted on different amounts of epochs combined with different learning rates to achieve the beste performance in terms of accuracy without overfitting.\\
+
+\noindent \textbf{Loss function.}\\ The {\it{categorical\_crossentropy}} was the choice for the loss function deployed in the training phase.\\
+
+\noindent \textbf{Metric.}\\ The {\it{accuracy}} was used to measure the behaviour of the model in the training phase.\\
+
+\noindent \textbf{Optimizers.}\\ Two optimizers were tested in order to subsequently compare the obtained results. The deployed optimizers are the classic Stochastic Gradient Descent (SGD) and the Adam algorithm. The former seemed to be outperformed by the latter, thus making of Adam optimizer the final choice for the training phase of the deployed CNN. Several tests were conducted to determine the best learning rate, leading to the best performance later in the test phase. \\
+
+\noindent \textbf{Callbacks.}\\ During the training phase of the model, several callbacks are passed as input to improve the performances in a computationally smart way:
+\begin{itemize}
+\item {\it{ReduceOnPlateau}}: takes care of setting the learning rate according to the behavior of the accuracy's curve.
+\item {\it{EarlyStopping}}: has the purpose of stopping the training process, if no significant improvement is observed for a defined number of epochs.
+\item {\it{TensorBoard}}: provides an interface to show the behavior of the metrics of interest during the training.
+\end{itemize}
+
+\noindent In Fig. \ref{fig:CNN_loss} the behavior of the loss during the training phase is shown and in Fig.  \ref{fig:CNN_accuracy} accuracy's one is depicted.
+\begin{figure}[h]
+			\centering
+	    	\includegraphics[width=8cm, height=6cm]{debug_tuy_loss}
+	    	\caption{CNN training loss}
+	    	\label{fig:CNN_loss}
+\end{figure} 
 
 \begin{figure}[h]
 			\centering
@@ -93,12 +135,6 @@ In Fig. \ref{fig:CNN_loss} the behavior of the loss during the training phase is
 	    	\label{fig:CNN_accuracy}
 \end{figure} 
 
-\begin{figure}[h]
-			\centering
-	    	\includegraphics[width=8cm, height=6cm]{debug_tuy_loss}
-	    	\caption{CNN training loss}
-	    	\label{fig:CNN_loss}
-\end{figure} 
 
 
 
