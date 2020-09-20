@@ -89,32 +89,32 @@ The parameter values used to compute the spectrogram are in Table \ref{table:spe
 \item {\it{Dense layer}}: also known as fully-connected layer, receives the input from convolutional layers or can be the last layer in the network, thus used to make a softmax prediction.
 \item {\it{Dropout layer}}: placed between two subsequent fully-connected layers, ignore some neurons with a certain probability during the training phase. It is used to prevent overfitting.\\
 
-\begin{table}[h!]
-\centering
-\begin{tabular}{| p{3cm} c c c |}
- \hline
-Type & Dimension & Depth & Activation\\
-\hline
-Convolutional 1 & 2x2 & 32 & ReLu \\
-Convolutional 1 & 2x2 & 32 & ReLu \\
-Pooling & 2x2 & - & -\\
-Flatten & - & - & -\\
-Dense 1 & ? & - & ReLu \\
-Dense 2 & ? & - &Softmax \\
-Dropout & - &  - & -\\
-\hline
-\end{tabular}
-\caption{CNN Layers details}
-\label{table:CNN_details}
-\end{table}
+%\begin{table}[h!]
+%\centering
+%\begin{tabular}{| p{3cm} c c c |}
+% \hline
+%Type &Output dim. & Kernel size & N. filters \\
+%\hline
+%Convolutional 1 &  & 3x3 & 32 \\
+%Convolutional 1 &  & 3x3 & 32 \\
+%Pooling & 2x2 & - & -\\
+%Flatten & - & - & -\\
+%Dense 1 & ? & - & ReLu \\
+%Dense 2 & ? & - &Softmax \\
+%Dropout & - &  - & -\\
+%\hline
+%\end{tabular}
+%\caption{CNN Layers details}
+%\label{table:CNN_details}
+%\end{table}
 
-The layers described in Table. \ref{table:CNN_details}, are combined to build the desired CNN architecture as shown in Fig. \ref{fig:CNN_schema}
+\noindent The layers described above, are combined to build the desired CNN architecture as shown in Fig. \ref{fig:CNN_schema}.  Inside the dashed rectangles on the right, the ouput shape form each layer is described. Inside the brackets on the left side, some additional features of the layers are specified.
 
 \end{itemize}
-\begin{figure}[h]
+\begin{figure}[ht]
 	\centering
-	\includegraphics[width=5, height=8cm, width=0.25\textwidth]{CNN_schema}
-	\caption{Light\_cnn model}
+	\includegraphics[scale=0.6]{CNN_schema}
+	\caption{CNN schema}
 	\label{fig:CNN_schema}
 \end{figure} 
 
@@ -125,29 +125,45 @@ The layers described in Table. \ref{table:CNN_details}, are combined to build th
 
 \noindent \textbf{Metric.}\\ The {\it{accuracy}} was used to measure the behaviour of the model in the training phase.\\
 
-\noindent \textbf{Optimizers.}\\ Two optimizers were tested in order to subsequently compare the obtained results. The deployed optimizers are the classic Stochastic Gradient Descent (SGD) and the Adam algorithm. The former seemed to be outperformed by the latter, thus making of Adam optimizer the final choice for the training phase of the deployed CNN. Several tests were conducted to determine the best learning rate, leading to the best performance later in the test phase. \\
+\noindent \textbf{Optimizers.}\\ Two optimizers were tested in order to subsequently compare the obtained results. The deployed optimizers are the classic {\it{Stochastic Gradient Descent}} (SGD) and the {\it{Adam}} algorithm. The former seemed to be outperformed by the latter, thus making of Adam optimizer the final choice for the training phase of the deployed CNN. Several tests were conducted to determine the best learning rate, leading to the best performance later in the test phase. \\
 
 \noindent \textbf{Callbacks.}\\ During the training phase of the model, several callbacks are passed as input to improve the performances in a computationally smart way:
 \begin{itemize}
 \item {\it{ReduceOnPlateau}}: takes care of setting the learning rate according to the behavior of the accuracy's curve.
 \item {\it{EarlyStopping}}: has the purpose of stopping the training process, if no significant improvement is observed for a defined number of epochs.
-\item {\it{TensorBoard}}: provides an interface to show the behavior of the metrics of interest during the training.
+\item {\it{TensorBoard}}: provides an interface to show the behavior of the metrics of interest during the training.\\
 \end{itemize}
 
-\noindent In Fig. \ref{fig:CNN_loss} the behavior of the loss during the training phase is shown and in Fig.  \ref{fig:CNN_accuracy} accuracy's one is depicted.
+\noindent In Fig. \ref{fig:CNN_loss} the behavior of the loss during the training phase is shown and in Fig.  \ref{fig:CNN_accuracy} accuracy's one is depicted. In both pictures, the blue curve represent the validation's behaviour and the orange curve the training's one.\\The proposed model was trained for 10 epochs and from both pictures can be observed how the training process was concluded earlier by mean of the {\it{early stopping}} callback function.
+
 \begin{figure}[h]
 			\centering
 	    	\includegraphics[width=8cm, height=6cm]{debug_tuy_loss}
-	    	\caption{CNN training loss}
+	    	\caption{Training loss}
 	    	\label{fig:CNN_loss}
 \end{figure} 
 
 \begin{figure}[h]
 			\centering
 	    	\includegraphics[width=8cm, height=6cm]{debug_tuy_acc}
-	    	\caption{CNN training accuracy}
+	    	\caption{Training accuracy}
 	    	\label{fig:CNN_accuracy}
 \end{figure} 
+
+\noindent In Table. \ref{table:CNN_parameters} a summary of the number of parameters of the trained CNN model.\\
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{| l | c |}
+\hline
+Total params &1,459,155\\
+Trainable params& 1,459,155\\
+Non-trainable params& 0\\
+\hline
+\end{tabular}
+\caption{CNN parameters}
+\label{table:CNN_parameters}
+\end{table}
 
 
 
