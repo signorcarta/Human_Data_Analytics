@@ -12,7 +12,7 @@ The workflow used to implement the whole KWS system is depicted in Fig. \ref{fig
 \end{figure} 
 \noindent As mentioned in the intro, the input data are downloaded from the well known public '{\it{speech\_commands V2}}' dataset \cite{Warden-2018}. At the time of this project it counts 105829 audio file, in \textit{.wav} format, 16000 Hz, channel mono with the duration of one second each. Each of them is listed and the file dimension is checked: only the file with size of 32K are kept, the other are discarded, indeed the audio with length less than 1 s have an higher probability to contain truncated word spell. \\
 As suggested by the author of the dataset \cite{Warden-2018}, to split the it into \textit{train}, \textit{validation} and \textit{test}, the hash of each audio is used to avoid that two different audio with the same label and pronounced by the same person would be put on different set (see \textit{which\_set} method described by the author in the README), compromising the interdependence between the different sets. \\
-The dataset is too huge be loaded into conventional RAM, therefore each list (train, validation and test) is dynamically split into lighter batches by specific generator (represented as dashed line in fig. \ref{fig:pipeline}). Each generator return a preprocessed audio as described next, which is consumed during the train and/or test phase.\\
+The dataset is too huge be loaded into conventional RAM, therefore each list (train, validation and test) is dynamically split into lighter batches by specific generator (represented as dashed line in fig. \ref{fig:pipeline}). Each generator return a preprocessed audio as described next, which is consumed during the train and/or test phase.\\ \\
 \textbf{Balanced batches and unknown percentage.} In a real application an audio stream is full of background noise and utterance to ignore. The keywords to recognize are only a little part. To differentiate background noise and unknown utterance, an \textit{unknown} label is added to the wanted words. The \textit{unknown} class should be composed of audio depending of the application context. In this report the problem is not faced. However it is provided a simple mechanism for the management of unknown label and the percentage of each label of the dataset. A list of \textit{wanted words} is passed as input parameter with an unknown percentage value. Each returned batch has the specified percentage of unknown audios taken from the file which are not in the wanted word list. In the report, each dataset with a specific percentage of unknown is defined as \textit{balanced}, instead, \textit{unbalanced} dataset has no specific unknown percentage and that class composed of all the speech recognition audio that are not labeled with a specified wanted word.
 
 
@@ -91,26 +91,7 @@ The parameter values used to compute the spectrogram are in Table \ref{table:spe
 \item {\it{Dense layer}}: also known as fully-connected layer, receives the input from convolutional layers or can be the last layer in the network, thus used to make a softmax prediction.
 \item {\it{Dropout layer}}: placed between two subsequent fully-connected layers, ignore some neurons with a certain probability during the training phase. It is used to prevent overfitting.\\
 
-%\begin{table}[h!]
-%\centering
-%\begin{tabular}{| p{3cm} c c c |}
-% \hline
-%Type &Output dim. & Kernel size & N. filters \\
-%\hline
-%Convolutional 1 &  & 3x3 & 32 \\
-%Convolutional 1 &  & 3x3 & 32 \\
-%Pooling & 2x2 & - & -\\
-%Flatten & - & - & -\\
-%Dense 1 & ? & - & ReLu \\
-%Dense 2 & ? & - &Softmax \\
-%Dropout & - &  - & -\\
-%\hline
-%\end{tabular}
-%\caption{CNN Layers details}
-%\label{table:CNN_details}
-%\end{table}
-
-\noindent The layers described above, are combined to build the desired CNN architecture as shown in Fig. \ref{fig:CNN_schema}.  Inside the dashed rectangles on the right, the ouput shape form each layer is described. Inside the brackets on the left side, some additional features of the layers are specified.
+\noindent The layers described above, are combined to build the desired CNN architecture as shown in Fig. \ref{fig:CNN_schema}.  
 
 \end{itemize}
 \begin{figure}[ht]
@@ -123,20 +104,20 @@ The parameter values used to compute the spectrogram are in Table \ref{table:spe
 \section{Training analysis}
 \noindent The training phase of the model described in Section. \ref{sec:learning_framework} was conducted on different amounts of epochs combined with different learning rates to achieve the beste performance in terms of accuracy without overfitting.\\
 
-\noindent \textbf{Loss function.}\\ The {\it{categorical\_crossentropy}} was the choice for the loss function deployed in the training phase.\\
+\noindent \textbf{Loss function.} The {\it{categorical\_crossentropy}} was the choice for the loss function deployed in the training phase.\\
 
-\noindent \textbf{Metric.}\\ The {\it{accuracy}} was used to measure the behaviour of the model in the training phase.\\
+\noindent \textbf{Metric.} The {\it{accuracy}} was used to measure the behaviour of the model in the training phase.\\
 
-\noindent \textbf{Optimizers.}\\ Two optimizers were tested in order to subsequently compare the obtained results. The deployed optimizers are the classic {\it{Stochastic Gradient Descent}} (SGD) and the {\it{Adam}} algorithm. The former seemed to be outperformed by the latter, thus making of Adam optimizer the final choice for the training phase of the deployed CNN. Several tests were conducted to determine the best learning rate, leading to the best performance later in the test phase. \\
+\noindent \textbf{Optimizers.} Two optimizers were tested in order to subsequently compare the obtained results. The deployed optimizers are the classic {\it{Stochastic Gradient Descent}} (SGD) and the {\it{Adam}} algorithm. The former seemed to be outperformed by the latter, thus making of Adam optimizer the final choice for the training phase of the deployed CNN. Several tests were conducted to determine the best learning rate, leading to the best performance later in the test phase. \\
 
-\noindent \textbf{Callbacks.}\\ During the training phase of the model, several callbacks are passed as input to improve the performances in a computationally smart way:
+\noindent \textbf{Callbacks.} During the training phase of the model, several callbacks are passed as input to improve the performances in a computationally smart way:
 \begin{itemize}
 \item {\it{ReduceOnPlateau}}: takes care of setting the learning rate according to the behavior of the accuracy's curve.
 \item {\it{EarlyStopping}}: has the purpose of stopping the training process, if no significant improvement is observed for a defined number of epochs.
 \item {\it{TensorBoard}}: provides an interface to show the behavior of the metrics of interest during the training.\\
 \end{itemize}
 
-\noindent In Fig. \ref{fig:CNN_loss} the behavior of the loss during the training phase is shown and in Fig.  \ref{fig:CNN_accuracy} accuracy's one is depicted. In both pictures, the blue curve represent the validation's behaviour and the orange curve the training's one.\\The proposed model was trained for 10 epochs and from both pictures can be observed how the training process was concluded earlier by mean of the {\it{early stopping}} callback function.
+\noindent In Fig. \ref{fig:CNN_loss} the behavior of the loss during the training phase is shown and in Fig.  \ref{fig:CNN_accuracy} accuracy's one is depicted. In both pictures, the blue curve represent the validation's behaviour and the orange curve the training's one.\\The proposed model was trained for 100 epochs and from both pictures can be observed how the training process was concluded earlier by mean of the {\it{early stopping}} callback function.
 
 \begin{figure}[h]
 			\centering
