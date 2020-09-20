@@ -85,7 +85,7 @@ def check_acc(param_list=DEFAULT_PARAM_LIST, min_acc=0.0, max_acc=1.0, n_label=0
             except json.decoder.JSONDecodeError:
                 print(colored("{:<30}, JSONDecodeError".format(res_file[:-5]), "red"))
                 continue
-            param_value["date"] = time.strftime("%Y/%m/%w %H:%M", time.gmtime(os.path.getmtime(res_file_path)))
+            param_value["date"] = time.strftime("%Y/%m/%d %H:%M", time.gmtime(os.path.getmtime(res_file_path)))
 
             # get the accuracy
             if "test_accuracy" in res_json:
