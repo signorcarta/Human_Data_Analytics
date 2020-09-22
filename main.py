@@ -1,5 +1,10 @@
 import argparse
 import os
+# 0 = all messages are logged (default behavior)
+# 1 = INFO messages are not printed
+# 2 = INFO and WARNING messages are not printed
+# 3 = INFO, WARNING, and ERROR messages are not printed
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # tensorflow log
 import json
 import random
 import string
@@ -8,14 +13,16 @@ import platform
 import wave
 import numpy as np
 import time
+import noisereduce as nr
 
 from typing import Dict
+
+from scipy.io import wavfile
+
 from CNN import CNN
 from HMM import HMM
 from os.path import join
 
-# filesystem directory, create dir if does not exist
-JSON_PATH = "json"
 
 if os.path.isdir("/nfsd"):  # the program is running in the cluster
     TRAIN_PATH = "/nfsd/hda/DATASETS/"
@@ -24,6 +31,9 @@ elif os.path.isdir("trainset"):  # the program is not running in the cluster
     TRAIN_PATH = "trainset"
     MACHINE = platform.uname()[1]  # 'jarvis-vivobooks15'
     import pyaudio
+
+# filesystem directory, create dir if does not exist
+JSON_PATH = "json"
 TEST_PATH = "test"
 MODEL_PATH = "model"
 RES_PATH = "res"
@@ -31,6 +41,18 @@ RES_PATH = "res"
 # list
 SUPPORTED_ACTION = ["train", "test", "rtasr"]
 SUPPORTED_MODEL = ["CNN", "HMM"]
+
+# real time parameter
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 16000
+CHUNK = 1024
+RECORD_SECONDS = 30
+WAVE_OUTPUT_FILENAME = "file.wav"
+WAVE_PREPROCESSED_FILENAME = "preprocessed.wav"
+NOISE_PATH = "noise.wav"
+MIN_ACTIVATION_THRESHOLD = 1024
+NORMALIZATION_FACTOR = 32768.0
 
 
 def random_string(string_length=3):
@@ -153,14 +175,6 @@ def real_time_asr(params: Dict):
     """
     assert "model_id" in params
 
-    FORMAT = pyaudio.paInt16
-    CHANNELS = 1
-    RATE = 16000
-    CHUNK = 1024
-    RECORD_SECONDS = 5
-    WAVE_OUTPUT_FILENAME = "file.wav"
-    MIN_ACTIVATION_THRESHOLD = 1024
-
     # check and load input model
     model_root = join(MODEL_PATH, params["model_id"])
     param_json = {}
@@ -178,6 +192,10 @@ def real_time_asr(params: Dict):
         # should never go here
         raise AssertionError("model_type not recognised: {} check {}".format(param_json["model_type"], SUPPORTED_MODEL))
 
+    # load background noise
+    rate, noisy_part = wavfile.read("noise.wav")
+    noisy_part = noisy_part.astype(np.float32, order='C') / NORMALIZATION_FACTOR
+
     # open a stream from microphone
     audio = pyaudio.PyAudio()
 
@@ -185,7 +203,7 @@ def real_time_asr(params: Dict):
     stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
     print("recording...")
     frames = []
-    np_frames = np.array([], dtype=np.int16)
+    np_frames = np.array([], dtype=np.float)
 
     conversion_time = 0.0  # time to preprocess and predict the intervals of stream
     sample_start = 0    # starting index of the sample that will be predicted
@@ -194,22 +212,32 @@ def real_time_asr(params: Dict):
     prediction_history = ["", "", "", "", ""]
     ph_index = 0
     ph_len = len(prediction_history)
+    i_denoise = 0
 
     for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
         data = stream.read(CHUNK)
+
         init = time.time()
-        numpydata = np.frombuffer(data, dtype=np.int16)
+        numpydata = np.frombuffer(data, dtype=np.int16).astype(np.float32, order='C') / NORMALIZATION_FACTOR
 
         np_frames = np.concatenate((np_frames, numpydata))
         # print("{}".format(max(numpydata)))
 
         # preprocessing of 1s if needed
         if len(np_frames) >= sample_start + sample_length:
-            sample = np_frames[sample_start:sample_start+sample_length]
+            # perform noise reduction
+            np_frames[i_denoise:sample_start+sample_length] = np_frames[i_denoise:sample_start+sample_length]
+            np_frames[i_denoise:sample_start+sample_length] = nr.reduce_noise(
+                                                            audio_clip=np_frames[i_denoise:sample_start+sample_length],
+                                                            noise_clip=noisy_part, verbose=False)
+            i_denoise = sample_start+sample_length
+            # select the last second of audio
+            sample = (np_frames[sample_start:sample_start+sample_length]*NORMALIZATION_FACTOR).astype(np.int16)
 
             # calculate the prediction only if
-            if max(sample) > MIN_ACTIVATION_THRESHOLD:
+            if is_candidate_word(sample):
                 prediction, label = asrmodel.predict(sample)  # model prediction
+                # print("{} {}".format(sample_start/float(RATE), label))
             else:
                 label = ""
             sample_start += sample_step
@@ -220,7 +248,7 @@ def real_time_asr(params: Dict):
             if prediction_history[(ph_index-1) % ph_len] == label:
                 print("{}".format(label.upper()))  # print("\r{}".format(label.upper()), end='')
             else:
-                print("{}".format(label.upper()))  # print("\r{}".format(label.upper()), end='')
+                print("".format(label.upper()))  # print("\r{}".format(label.upper()), end='')
 
             ph_index = (ph_index + 1) % ph_len
 
@@ -233,6 +261,9 @@ def real_time_asr(params: Dict):
     stream.close()
     audio.terminate()
 
+    # save filtered audio
+    wavfile.write(WAVE_PREPROCESSED_FILENAME, RATE, np_frames)
+
     # save the recorded audio
     waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
     waveFile.setnchannels(CHANNELS)
@@ -240,6 +271,16 @@ def real_time_asr(params: Dict):
     waveFile.setframerate(RATE)
     waveFile.writeframes(b''.join(frames))
     waveFile.close()
+
+
+def is_candidate_word(sample, delta_silence=800):
+    sample = sample.astype(np.int64)
+    side_power = np.sum(sample[:delta_silence]*sample[:delta_silence] + sample[-delta_silence:]*sample[-delta_silence:])
+    central_power = np.sum(sample[delta_silence:-delta_silence]*sample[delta_silence:-delta_silence])
+    SNR = central_power/side_power/9
+    if SNR > 3 and central_power > 1000000000:
+        return True
+    return False
 
 
 def main(action, params, multi_test=None, set_model_name=None):
