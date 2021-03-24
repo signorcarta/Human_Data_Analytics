@@ -1,2 +1,3 @@
 # HumanDataAnalitycs
-This is the repo to manage the HDA course project. The project will be about Automatic Speech Recognition
+Implementation of a KWS system. 
+Features are extracted through MFCC coefficients. CNNs and their hyperparameters tuning are the core of this project. The system is trained on the 'speech_commands' datasets from Tensorflow.
